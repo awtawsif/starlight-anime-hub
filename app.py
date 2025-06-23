@@ -1,8 +1,9 @@
 import requests
-from flask import Flask, request, render_template, url_for, send_file, jsonify
+from flask import Flask, request, render_template, send_file, jsonify, url_for
 import urllib.parse
 import logging
-from bs4 import BeautifulSoup # Import BeautifulSoup for HTML parsing
+from bs4 import BeautifulSoup
+import re # Import re for regular expressions
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -153,43 +154,92 @@ def anime_detail(anime_session_id):
 def get_episode_downloads(anime_session_id, episode_session_id):
     """
     Fetches the animepahe.ru play page for a specific episode,
-    parses it to find download links, and returns them as JSON.
+    parses it to find initial download links, then follows those links
+    to extract the real kwik.si download URLs from embedded JavaScript.
     """
     play_url = f"https://animepahe.ru/play/{anime_session_id}/{episode_session_id}"
-    app.logger.info(f"Attempting to fetch download links from: {play_url}")
-    downloads = []
+    app.logger.info(f"Attempting to fetch initial download links from: {play_url}")
+    final_downloads = []
     
     try:
-        # Fetch the play page HTML
-        # Important: Use similar headers as the main API to ensure access
-        response = requests.get(play_url, headers=API_HEADERS, timeout=15)
-        response.raise_for_status() # Raise an HTTPError for bad responses
+        # 1. Fetch the animepahe.ru play page HTML
+        response_play_page = requests.get(play_url, headers=API_HEADERS, timeout=15)
+        response_play_page.raise_for_status()
 
-        # Parse the HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup_play_page = BeautifulSoup(response_play_page.text, 'html.parser')
 
         # Find the div with id="pickDownload"
-        download_div = soup.find('div', id='pickDownload')
+        download_div = soup_play_page.find('div', id='pickDownload')
 
         if download_div:
-            # Find all anchor tags (<a>) within this div
-            for link_tag in download_div.find_all('a', class_='dropdown-item'):
-                href = link_tag.get('href')
-                text = link_tag.get_text(strip=True) # Get the text content, stripped of extra whitespace
-                if href and text:
-                    downloads.append({'text': text, 'href': href})
-            app.logger.info(f"Found {len(downloads)} download links for episode {episode_session_id}.")
+            # Find all initial download links (e.g., pahe.win links)
+            initial_links = download_div.find_all('a', class_='dropdown-item')
+            
+            for link_tag in initial_links:
+                initial_href = link_tag.get('href')
+                text = link_tag.get_text(strip=True) # e.g., "df68 · 360p (46MB) BD"
+                
+                if initial_href:
+                    app.logger.info(f"Fetching redirect page: {initial_href}")
+                    try:
+                        # 2. Fetch the redirect page (e.g., pahe.win/cvhun)
+                        # Use a new User-Agent that might be more generally accepted by redirection services
+                        redirect_headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
+                            'Referer': play_url # Indicate where the request is coming from
+                        }
+                        response_redirect_page = requests.get(initial_href, headers=redirect_headers, timeout=15)
+                        response_redirect_page.raise_for_status()
+                        soup_redirect_page = BeautifulSoup(response_redirect_page.text, 'html.parser')
+
+                        # 3. Find the script containing the real download link
+                        # As per user feedback, target the first script tag more directly
+                        script_tags = soup_redirect_page.find_all('script', type='text/javascript')
+                        
+                        found_kwik_link = None
+                        if script_tags:
+                            target_script = script_tags[0] # Assume the first script tag
+                            script_content = target_script.string
+                            app.logger.info(f"Content of target script (first script tag): {script_content[:500]}...") # Log first 500 chars
+
+                            if script_content and 'kwik.si' in script_content:
+                                # Regex to find https://kwik.si/f/ followed by alphanumeric characters
+                                match = re.search(r'https:\/\/kwik\.si\/f\/[a-zA-Z0-9]+', script_content)
+                                if match:
+                                    found_kwik_link = match.group(0)
+                                    app.logger.info(f"Regex match result: Found kwik.si link: {found_kwik_link}")
+                                else:
+                                    app.logger.warning(f"Regex match failed for kwik.si link in script content for {initial_href}. Script content might not contain the pattern.")
+                            else:
+                                app.logger.warning(f"Script content is empty or does not contain 'kwik.si' for {initial_href}.")
+                        else:
+                            app.logger.warning(f"No <script type='text/javascript'> tags found on redirect page: {initial_href}")
+
+
+                        if found_kwik_link:
+                            final_downloads.append({'text': text, 'href': found_kwik_link})
+                        else:
+                            app.logger.warning(f"No kwik.si link found after processing for initial link: {initial_href}")
+
+                    except requests.exceptions.RequestException as e:
+                        app.logger.error(f"Error fetching redirect page {initial_href}: {e}")
+                    except Exception as e:
+                        app.logger.error(f"Error parsing redirect page {initial_href}: {e}")
+                else:
+                    app.logger.warning(f"Initial download link href was empty for text: {text}")
+
+            app.logger.info(f"Found {len(final_downloads)} final download links for episode {episode_session_id}.")
         else:
-            app.logger.warning(f"Download div (id=pickDownload) not found on page: {play_url}")
+            app.logger.warning(f"Download div (id=pickDownload) not found on play page: {play_url}")
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error fetching play page for downloads ({play_url}): {e}")
-        return jsonify({'error': 'Could not fetch download data. Network issue.'}), 500
+        return jsonify({'error': 'Could not fetch initial download data. Network issue.'}), 500
     except Exception as e:
-        app.logger.error(f"An unexpected error occurred parsing downloads ({play_url}): {e}")
-        return jsonify({'error': 'An unexpected error occurred while parsing downloads.'}), 500
+        app.logger.error(f"An unexpected error occurred parsing initial downloads ({play_url}): {e}")
+        return jsonify({'error': 'An unexpected error occurred while parsing initial downloads.'}), 500
 
-    return jsonify({'downloads': downloads})
+    return jsonify({'downloads': final_downloads})
 
 
 # --- Flask Route for Image Proxying ---
