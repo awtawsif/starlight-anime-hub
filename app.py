@@ -275,9 +275,5 @@ def proxy_image():
 
 # --- Run the Application ---
 if __name__ == '__main__':
-    # The app should be run using the 'flask' command in the terminal.
-    # Example:
-    # export FLASK_APP=app.py
-    # export FLASK_ENV=development
-    # flask run
+    # For local development only. In production, use Gunicorn or another WSGI server.
     app.run(debug=True)
