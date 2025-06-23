@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Anime Search</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link to your custom stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen antialiased">
+    <div class="container mx-auto px-4 py-8 md:py-16">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                Anime Search
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400">
+                Find your next favorite anime series.
+            </p>
+        </header>
+
+        <!-- Search Form -->
+        <div class="max-w-2xl mx-auto mb-12">
+            <form method="post" action="/" class="flex flex-col sm:flex-row items-center gap-3">
+                <div class="relative w-full">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="text" 
+                        name="query" 
+                        id="query" 
+                        value="{{ search_query }}"
+                        placeholder="Search for an anime..."
+                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    >
+                </div>
+                <button 
+                    type="submit" 
+                    class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition"
+                >
+                    Search
+                </button>
+            </form>
+        </div>
+
+        <!-- Search Results Section -->
+        <main>
+            {% if search_performed %}
+                <h2 class="text-2xl font-semibold text-center mb-8">
+                    {% if results %}
+                        Showing {{ results|length }} results for "{{ search_query }}"
+                    {% else %}
+                        No results found for "{{ search_query }}"
+                    {% endif %}
+                </h2>
+
+                {% if error_message %}
+                     <div class="text-center py-12 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                        <p class="text-red-600 dark:text-red-400 font-semibold">An error occurred:</p>
+                        <p class="text-red-500 dark:text-red-400 mt-1">{{ error_message }}</p>
+                    </div>
+                {% elif results %}
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {% for item in results %}
+                            <a href="https://animepahe.ru/anime/{{ item.session }}" target="_blank" rel="noopener noreferrer" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
+                                <img 
+                                    src="{{ item.poster }}" 
+                                    alt="Poster for {{ item.title }}" 
+                                    class="w-full h-auto object-cover"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/FFFFFF?text=No+Image';"
+                                >
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-900 dark:text-white truncate" title="{{ item.title }}">{{ item.title }}</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ item.type }} &middot; {{ item.year }}</p>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No results found</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search terms.</p>
+                    </div>
+                {% endif %}
+            
+            {% else %}
+                <div class="text-center text-gray-500 dark:text-gray-400">
+                    <p>Enter a term in the search bar above to begin.</p>
+                </div>
+            {% endif %}
+        </main>
+
+    </div>
+</body>
+</html>
