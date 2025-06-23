@@ -28,3 +28,25 @@ body {
         transform: translateY(0);
     }
 }
+
+/* Modal specific styles */
+#downloadModal {
+    /* Tailwind's hidden utility takes care of display: none */
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+#downloadModal:not(.hidden) {
+    opacity: 1;
+}
+
+/* Centering the modal content */
+#downloadModal > div {
+    /* Tailwind's flex and item-center on parent take care of initial positioning */
+    transform: scale(0.95);
+    transition: transform 0.3s ease-out;
+}
+
+#downloadModal:not(.hidden) > div {
+    transform: scale(1);
+}

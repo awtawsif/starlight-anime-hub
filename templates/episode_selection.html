@@ -21,7 +21,7 @@
                 {{ anime_title }}
             </h1>
             <p class="text-lg text-gray-600 dark:text-gray-400">
-                Select an episode to watch.
+                Select an episode to view download options.
             </p>
             <div class="mt-6">
                 <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -43,7 +43,7 @@
             {% elif episodes %}
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {% for episode in episodes %}
-                        <a href="https://animepahe.ru/play/{{ anime_session_id }}/{{ episode.session }}" target="_blank" rel="noopener noreferrer" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
+                        <div onclick="showDownloads('{{ anime_session_id }}', '{{ episode.session }}', 'Episode {{ episode.episode }}')" class="cursor-pointer block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
                             <img 
                                 src="{{ url_for('proxy_image', url=episode.snapshot) }}" 
                                 alt="Snapshot for Episode {{ episode.episode }}" 
@@ -57,9 +57,45 @@
                                 {% endif %}
                                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ episode.duration }}</p>
                             </div>
-                        </a>
+                        </div>
                     {% endfor %}
                 </div>
+
+                <!-- Pagination Controls -->
+                <div class="flex justify-center mt-12 space-x-2">
+                    {% if pagination.prev_page_url %}
+                        <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, page=pagination.current_page - 1) }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                            Previous
+                        </a>
+                    {% else %}
+                        <span class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed">
+                            Previous
+                        </span>
+                    {% endif %}
+
+                    {% for p in range(1, pagination.last_page + 1) %}
+                        <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, page=p) }}" 
+                           class="px-4 py-2 rounded-lg 
+                                {% if p == pagination.current_page %}
+                                    bg-blue-600 text-white font-bold
+                                {% else %}
+                                    bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600
+                                {% endif %} transition">
+                            {{ p }}
+                        </a>
+                    {% endfor %}
+
+                    {% if pagination.next_page_url %}
+                        <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, page=pagination.current_page + 1) }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                            Next
+                        </a>
+                    {% else %}
+                        <span class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg cursor-not-allowed">
+                            Next
+                        </span>
+                    {% endif %}
+                </div>
+
             {% else %}
                 <div class="text-center py-12">
                      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -72,5 +108,88 @@
         </main>
 
     </div>
+
+    <!-- Download Modal -->
+    <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto relative transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+            <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h3 id="modalTitle" class="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center"></h3>
+            <div id="downloadLinks" class="space-y-3">
+                <p id="loadingMessage" class="text-center text-gray-600 dark:text-gray-400">Loading download links...</p>
+                <div id="noLinksFound" class="text-center text-gray-600 dark:text-gray-400 hidden">No download links found for this episode.</div>
+            </div>
+            <div id="errorMessage" class="text-center text-red-500 dark:text-red-400 mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const downloadModal = document.getElementById('downloadModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const downloadLinksContainer = document.getElementById('downloadLinks');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const noLinksFoundMessage = document.getElementById('noLinksFound');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
+            modalTitle.textContent = episodeTitle + ' - Download Options';
+            loadingMessage.classList.remove('hidden');
+            noLinksFoundMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            downloadLinksContainer.innerHTML = ''; // Clear previous links
+            downloadLinksContainer.appendChild(loadingMessage); // Re-add loading message
+            downloadModal.classList.remove('hidden');
+
+            fetch(`/api/episode-downloads/${animeSessionId}/${episodeSessionId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingMessage.classList.add('hidden');
+                    if (data.downloads && data.downloads.length > 0) {
+                        data.downloads.forEach(link => {
+                            const a = document.createElement('a');
+                            a.href = link.href;
+                            a.textContent = link.text;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            a.className = 'block px-4 py-3 bg-blue-500 text-white rounded-md text-center hover:bg-blue-600 transition-colors shadow-md';
+                            downloadLinksContainer.appendChild(a);
+                        });
+                    } else {
+                        noLinksFoundMessage.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching download links:', error);
+                    loadingMessage.classList.add('hidden');
+                    errorMessage.textContent = 'Failed to load download links. Please try again.';
+                    errorMessage.classList.remove('hidden');
+                });
+        }
+
+        function closeModal() {
+            downloadModal.classList.add('hidden');
+            // Clear links and messages when closing the modal
+            downloadLinksContainer.innerHTML = '';
+            downloadLinksContainer.appendChild(loadingMessage); // Restore loading message for next time
+            loadingMessage.classList.remove('hidden');
+            noLinksFoundMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+        }
+
+        // Close modal when clicking outside of it
+        downloadModal.addEventListener('click', (event) => {
+            if (event.target === downloadModal) {
+                closeModal();
+            }
+        });
+    </script>
 </body>
 </html>

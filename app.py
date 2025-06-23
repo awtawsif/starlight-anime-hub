@@ -1,7 +1,8 @@
 import requests
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, url_for, send_file, jsonify
 import urllib.parse
 import logging
+from bs4 import BeautifulSoup # Import BeautifulSoup for HTML parsing
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,7 +18,7 @@ API_HEADERS = {
     'Accept': 'application/json, text/javascript, */*; q=0.01',
     'X-Requested-With': 'XMLHttpRequest',
     'Referer': 'https://animepahe.ru/',
-    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c66u; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMgyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdlBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInYmFsdWUiOiJZTjJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
+    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c66u; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMgyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdlBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInZhbHVlIjoiZTJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'same-origin'
@@ -78,11 +79,23 @@ def search_page():
 @app.route('/anime/<string:anime_session_id>', methods=['GET'])
 def anime_detail(anime_session_id):
     """
-    Fetches and displays episodes for a given anime session ID.
+    Fetches and displays episodes for a given anime session ID with pagination.
     """
     episodes = []
     error_message = None
     anime_title = "Anime Episodes" # Default title, can be updated if more info is passed
+    
+    # Get current page from query parameters, default to 1
+    page = request.args.get('page', 1, type=int)
+
+    pagination_data = {
+        'total': 0,
+        'per_page': 0,
+        'current_page': page,
+        'last_page': 1,
+        'next_page_url': None,
+        'prev_page_url': None
+    }
 
     try:
         # Fetch episode data for the given anime_session_id
@@ -90,38 +103,40 @@ def anime_detail(anime_session_id):
             'm': 'release',
             'id': anime_session_id,
             'sort': 'episode_asc',
-            'page': 1 # Fetching only the first page of episodes for now
+            'page': page
         }
-        app.logger.info(f"Fetching episodes for session ID: {anime_session_id}")
+        app.logger.info(f"Fetching episodes for session ID: {anime_session_id}, page: {page}")
         response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
         response.raise_for_status()
         json_data = response.json()
         
-        # --- DEBUGGING LOGS ---
-        app.logger.info(f"Raw JSON data from release API for {anime_session_id}: {json_data}")
+        app.logger.info(f"Raw JSON data from release API for {anime_session_id} (page {page}): {json_data}")
 
-        # CORRECTED: The 'release' API returns episodes within a 'data' key.
+        # The 'release' API returns episodes within a 'data' key.
         episodes = json_data.get('data', [])
         
-        # The API usually returns episodes sorted, but we can sort explicitly if needed
-        # Example if sorting by 'episode' number is crucial and not guaranteed by API:
-        # episodes.sort(key=lambda x: x.get('episode', 0))
+        # Update pagination data from the API response
+        pagination_data['total'] = json_data.get('total', 0)
+        pagination_data['per_page'] = json_data.get('per_page', 0)
+        pagination_data['current_page'] = json_data.get('current_page', page)
+        pagination_data['last_page'] = json_data.get('last_page', 1)
+        
+        # Generate next/prev page URLs for the template
+        if pagination_data['current_page'] < pagination_data['last_page']:
+            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=pagination_data['current_page'] + 1)
+        if pagination_data['current_page'] > 1:
+            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=pagination_data['current_page'] - 1)
 
-        app.logger.info(f"Processed episodes for {anime_session_id}: {episodes}")
-        # --- END DEBUGGING LOGS ---
+        app.logger.info(f"Processed episodes for {anime_session_id} (page {page}): {episodes}")
 
-        # If there are episodes, we can try to infer a title from the API response
-        # or, ideally, pass the anime title from the search results to this function
-        # if you want a more specific title than just the session ID.
         if episodes:
-            anime_title = f"Episodes for Anime ID: {anime_session_id}" 
-            # If you passed anime_title from the search, you'd use that here instead.
+            anime_title = f"Episodes for Anime: {anime_session_id}" 
 
     except requests.exceptions.RequestException as e:
-        app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}): {e}")
+        app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
         error_message = f"Could not fetch episode data. Please try again later. ({e})"
     except Exception as e:
-        app.logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}): {e}")
+        app.logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}, page: {page}): {e}")
         error_message = f"An unexpected error occurred: {e}"
 
     return render_template(
@@ -129,8 +144,52 @@ def anime_detail(anime_session_id):
         anime_session_id=anime_session_id, 
         episodes=episodes, 
         error_message=error_message,
-        anime_title=anime_title # Pass the title to the template
+        anime_title=anime_title,
+        pagination=pagination_data # Pass pagination data to the template
     )
+
+# --- Flask Route for Episode Download Links ---
+@app.route('/api/episode-downloads/<string:anime_session_id>/<string:episode_session_id>', methods=['GET'])
+def get_episode_downloads(anime_session_id, episode_session_id):
+    """
+    Fetches the animepahe.ru play page for a specific episode,
+    parses it to find download links, and returns them as JSON.
+    """
+    play_url = f"https://animepahe.ru/play/{anime_session_id}/{episode_session_id}"
+    app.logger.info(f"Attempting to fetch download links from: {play_url}")
+    downloads = []
+    
+    try:
+        # Fetch the play page HTML
+        # Important: Use similar headers as the main API to ensure access
+        response = requests.get(play_url, headers=API_HEADERS, timeout=15)
+        response.raise_for_status() # Raise an HTTPError for bad responses
+
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find the div with id="pickDownload"
+        download_div = soup.find('div', id='pickDownload')
+
+        if download_div:
+            # Find all anchor tags (<a>) within this div
+            for link_tag in download_div.find_all('a', class_='dropdown-item'):
+                href = link_tag.get('href')
+                text = link_tag.get_text(strip=True) # Get the text content, stripped of extra whitespace
+                if href and text:
+                    downloads.append({'text': text, 'href': href})
+            app.logger.info(f"Found {len(downloads)} download links for episode {episode_session_id}.")
+        else:
+            app.logger.warning(f"Download div (id=pickDownload) not found on page: {play_url}")
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error fetching play page for downloads ({play_url}): {e}")
+        return jsonify({'error': 'Could not fetch download data. Network issue.'}), 500
+    except Exception as e:
+        app.logger.error(f"An unexpected error occurred parsing downloads ({play_url}): {e}")
+        return jsonify({'error': 'An unexpected error occurred while parsing downloads.'}), 500
+
+    return jsonify({'downloads': downloads})
 
 
 # --- Flask Route for Image Proxying ---
