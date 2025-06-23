@@ -1,5 +1,10 @@
 import requests
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file
+import urllib.parse
+import logging # Import logging to log errors
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create a Flask application instance
 app = Flask(__name__)
@@ -18,11 +23,11 @@ API_HEADERS = {
     'Sec-Fetch-Site': 'same-origin'
 }
 
-# --- Flask Route ---
+# --- Flask Route for Anime Search ---
 @app.route('/', methods=['GET', 'POST'])
 def search_page():
     """
-    Handles displaying the page and processing API search requests.
+    Handles displaying the search page and processing API search requests.
     """
     results = []
     search_query = ""
@@ -53,9 +58,11 @@ def search_page():
 
             except requests.exceptions.RequestException as e:
                 # Handle network errors (timeout, connection error, etc.)
+                app.logger.error(f"API Request Error: {e}")
                 error_message = f"Could not connect to the API. Please try again later. ({e})"
             except Exception as e:
                 # Handle other potential errors (e.g., JSON parsing)
+                app.logger.error(f"Unexpected Error during search: {e}")
                 error_message = f"An unexpected error occurred: {e}"
 
     # Render the HTML template with the provided data
@@ -66,6 +73,41 @@ def search_page():
         search_performed=search_performed,
         error_message=error_message
     )
+
+# --- Flask Route for Image Proxying ---
+@app.route('/proxy-image')
+def proxy_image():
+    """
+    Proxies images from the animepahe.ru domain to bypass CORS restrictions.
+    The image URL is passed as a query parameter.
+    """
+    image_url = request.args.get('url')
+    if not image_url:
+        app.logger.warning("Attempted to proxy image without a URL.")
+        return "Image URL not provided", 400
+
+    try:
+        # Fetch the image using requests. Re-using API_HEADERS as they often contain useful info
+        # for external sites, but not strictly necessary for simple image fetching.
+        # Set stream=True for potentially large files, and content_type will be derived
+        # from response headers.
+        response = requests.get(image_url, headers=API_HEADERS, stream=True, timeout=10)
+        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+
+        # Get the content type from the response headers. If not present, default to octet-stream.
+        mimetype = response.headers.get('Content-Type', 'application/octet-stream')
+        
+        # Return the image content with the correct MIME type
+        # send_file requires a file-like object or a path, so we'll just return content directly
+        # with the mimetype header.
+        return response.content, 200, {'Content-Type': mimetype}
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error proxying image {image_url}: {e}")
+        return "Error loading image", 500
+    except Exception as e:
+        app.logger.error(f"An unexpected error occurred while proxying image {image_url}: {e}")
+        return "An unexpected error occurred while proxying image", 500
 
 # --- Run the Application ---
 if __name__ == '__main__':

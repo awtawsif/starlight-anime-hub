@@ -73,10 +73,10 @@
                         {% for item in results %}
                             <a href="https://animepahe.ru/anime/{{ item.session }}" target="_blank" rel="noopener noreferrer" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
                                 <img 
-                                    src="{{ item.poster }}" 
+                                    src="{{ url_for('proxy_image', url=item.poster) }}" 
                                     alt="Poster for {{ item.title }}" 
                                     class="w-full h-auto object-cover"
-                                    onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/FFFFFF?text=No+Image';"
+                                    onerror="console.log('Failed to load proxy image:', this.src); this.onerror=null;this.src='https://placehold.co/300x450/000000/FFFFFF?text=No+Image';"
                                 >
                                 <div class="p-4">
                                     <h3 class="font-bold text-gray-900 dark:text-white truncate" title="{{ item.title }}">{{ item.title }}</h3>
