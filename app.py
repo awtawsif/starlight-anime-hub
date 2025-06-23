@@ -1,9 +1,8 @@
 import requests
-from flask import Flask, request, render_template, send_file, jsonify, url_for
-import urllib.parse
+from flask import Flask, request, render_template, jsonify, url_for
 import logging
 from bs4 import BeautifulSoup
-import re # Import re for regular expressions
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -123,10 +122,12 @@ def anime_detail(anime_session_id):
         pagination_data['last_page'] = json_data.get('last_page', 1)
         
         # Generate next/prev page URLs for the template
-        if pagination_data['current_page'] < pagination_data['last_page']:
-            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=pagination_data['current_page'] + 1)
-        if pagination_data['current_page'] > 1:
-            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=pagination_data['current_page'] - 1)
+        cp = pagination_data['current_page']
+        lp = pagination_data['last_page']
+        if cp < lp:
+            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=cp + 1)
+        if cp > 1:
+            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=cp - 1)
 
         app.logger.info(f"Processed episodes for {anime_session_id} (page {page}): {episodes}")
 

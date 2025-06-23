@@ -50,3 +50,5 @@ body {
 #downloadModal:not(.hidden) > div {
     transform: scale(1);
 }
+
+/* No redundant CSS found. */
