@@ -18,7 +18,7 @@ API_HEADERS = {
     'Accept': 'application/json, text/javascript, */*; q=0.01',
     'X-Requested-With': 'XMLHttpRequest',
     'Referer': 'https://animepahe.ru/',
-    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c66u; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMgyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdlBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInZhbHVlIjoiZTJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
+    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c66u; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMcyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdlBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInZhbHVlIjoiZTJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'same-origin'
@@ -80,10 +80,13 @@ def search_page():
 def anime_detail(anime_session_id):
     """
     Fetches and displays episodes for a given anime session ID with pagination.
+    
+    The anime_title is now passed as a query parameter from index.html to improve UX.
     """
     episodes = []
     error_message = None
-    anime_title = "Anime Episodes" # Default title, can be updated if more info is passed
+    # Get anime_title from query parameters, defaulting to a generic title if not found
+    anime_title = request.args.get('anime_title', "Anime Episodes") 
     
     # Get current page from query parameters, default to 1
     page = request.args.get('page', 1, type=int)
@@ -122,17 +125,15 @@ def anime_detail(anime_session_id):
         pagination_data['last_page'] = json_data.get('last_page', 1)
         
         # Generate next/prev page URLs for the template
+        # Make sure to pass anime_title to ensure continuity in navigation
         cp = pagination_data['current_page']
         lp = pagination_data['last_page']
         if cp < lp:
-            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=cp + 1)
+            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
         if cp > 1:
-            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, page=cp - 1)
+            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1)
 
         app.logger.info(f"Processed episodes for {anime_session_id} (page {page}): {episodes}")
-
-        if episodes:
-            anime_title = f"Episodes for Anime: {anime_session_id}" 
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
@@ -146,7 +147,7 @@ def anime_detail(anime_session_id):
         anime_session_id=anime_session_id, 
         episodes=episodes, 
         error_message=error_message,
-        anime_title=anime_title,
+        anime_title=anime_title, # Pass the fetched or default anime_title
         pagination=pagination_data # Pass pagination data to the template
     )
 

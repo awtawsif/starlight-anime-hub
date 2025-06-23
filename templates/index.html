@@ -3,34 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask Anime Search</title>
+    <title>Starlight Anime Hub</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Link to your custom stylesheet -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen antialiased page-enter-active">
-    <div class="container mx-auto px-4 py-8 md:py-16">
+<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col justify-center">
         
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-                Anime Search
+        <!-- Header Section -->
+        <header class="text-center mb-12 animate-fade-in-down">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
+                Starlight Anime Hub
             </h1>
-            <p class="text-lg text-gray-600 dark:text-gray-400">
-                Find your next favorite anime series.
+            <p class="text-xl text-blue-300 font-light mb-8 max-w-2xl mx-auto">
+                Dive into a universe of captivating stories. Find, explore, and download your favorite anime.
             </p>
         </header>
 
         <!-- Search Form -->
-        <div class="max-w-2xl mx-auto mb-12">
-            <form method="post" action="/" class="flex flex-col sm:flex-row items-center gap-3">
-                <div class="relative w-full">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <div class="max-w-3xl mx-auto w-full mb-16 animate-fade-in-up">
+            <form method="post" action="/" class="flex flex-col sm:flex-row items-center gap-4 bg-gray-800/60 backdrop-blur-md rounded-xl p-3 shadow-2xl border border-gray-700/50">
+                <div class="relative flex-grow w-full">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                           <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                         </svg>
                     </div>
@@ -39,13 +41,13 @@
                         name="query" 
                         id="query" 
                         value="{{ search_query }}"
-                        placeholder="Search for an anime..."
-                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="Search for an anime series..."
+                        class="w-full pl-12 pr-6 py-3 bg-gray-700/50 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 border border-gray-600/50"
                     >
                 </div>
                 <button 
                     type="submit" 
-                    class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition"
+                    class="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-all duration-300 transform hover:scale-105 btn-gradient"
                 >
                     Search
                 </button>
@@ -53,55 +55,63 @@
         </div>
 
         <!-- Search Results Section -->
-        <main>
+        <main class="flex-grow">
             {% if search_performed %}
-                <h2 class="text-2xl font-semibold text-center mb-8">
+                <h2 class="text-3xl font-bold text-center text-white mb-10 animate-fade-in-up">
                     {% if results %}
-                        Showing {{ results|length }} results for "{{ search_query }}"
+                        Showing {{ results|length }} cosmic results for "<span class="text-blue-400">{{ search_query }}</span>"
                     {% else %}
-                        No results found for "{{ search_query }}"
+                        No starlight found for "<span class="text-blue-400">{{ search_query }}</span>"
                     {% endif %}
                 </h2>
 
                 {% if error_message %}
-                     <div class="text-center py-12 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <p class="text-red-600 dark:text-red-400 font-semibold">An error occurred:</p>
-                        <p class="text-red-500 dark:text-red-400 mt-1">{{ error_message }}</p>
+                     <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
+                        <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
+                        <p class="text-red-200 text-md">{{ error_message }}</p>
                     </div>
                 {% elif results %}
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in results %}
-                            <a href="{{ url_for('anime_detail', anime_session_id=item.session) }}" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
+                            <a href="{{ url_for('anime_detail', anime_session_id=item.session, anime_title=item.title) }}" class="anime-card block bg-gray-800/70 border border-gray-700/50 rounded-xl shadow-xl overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/30">
                                 <img 
                                     src="{{ url_for('proxy_image', url=item.poster) }}" 
                                     alt="Poster for {{ item.title }}" 
-                                    class="w-full h-auto object-cover"
-                                    onerror="console.log('Failed to load proxy image:', this.src); this.onerror=null;this.src='https://placehold.co/300x450/000000/FFFFFF?text=No+Image';"
+                                    class="w-full h-auto object-cover aspect-[2/3] transform transition-transform duration-500 hover:scale-110"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
                                 >
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-900 dark:text-white truncate" title="{{ item.title }}">{{ item.title }}</h3>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ item.type }} &middot; {{ item.year }}</p>
+                                <div class="p-4 text-center">
+                                    <h3 class="font-bold text-white text-lg mb-1 truncate" title="{{ item.title }}">{{ item.title }}</h3>
+                                    <p class="text-sm text-blue-300">{{ item.type }} &middot; {{ item.year }}</p>
                                 </div>
                             </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-12">
-                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <div class="text-center py-16 text-gray-400 animate-fade-in">
+                         <svg class="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No results found</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search terms.</p>
+                        <h3 class="mt-2 text-xl font-medium text-white">No constellations found</h3>
+                        <p class="mt-2 text-md text-gray-400">Try adjusting your search parameters, explorer.</p>
                     </div>
                 {% endif %}
             
             {% else %}
-                <div class="text-center text-gray-500 dark:text-gray-400">
-                    <p>Enter a term in the search bar above to begin.</p>
+                <div class="text-center py-20 text-gray-400 animate-fade-in">
+                    <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    <p class="text-xl">Embark on your anime journey.</p>
+                    <p class="text-lg mt-2">Enter a series name in the cosmic search bar above to begin.</p>
                 </div>
             {% endif %}
         </main>
-
     </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
+        &copy; 2024 Starlight Anime Hub. All rights reserved.
+    </footer>
 </body>
 </html>
