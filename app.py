@@ -1,7 +1,7 @@
 import requests
 from flask import Flask, request, render_template, send_file
 import urllib.parse
-import logging # Import logging to log errors
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,7 +17,7 @@ API_HEADERS = {
     'Accept': 'application/json, text/javascript, */*; q=0.01',
     'X-Requested-With': 'XMLHttpRequest',
     'Referer': 'https://animepahe.ru/',
-    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c6zu; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMgyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdmBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInZhbHVlIjoiZTJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
+    'Cookie': '__ddgid_=U5s6Z9J3BF0pfdhM; __ddgmark_=BiGlRBjK0HMCPWLj; __ddg2_=IgFUmsxCz7Q4c66u; __ddg1_=Dxb4hS7Idd3Og4h75gA9; res=1080; aud=jpn; av1=0; latest=6114; __ddg8_=pOEMgyEFef8xzmDs; __ddg10_=1750607066; __ddg9_=103.204.209.15; XSRF-TOKEN=eyJpdiI6ImVhbG9vN0pFbCtrYSt1SVYyaEo1d1E9PSIsInZhbHVlIjoiOTdqUzQ4NmNHU0VaMkZEV29vd2ZIR0VoNWVaSkJKTTlTNW4rZ0dXaDVKYytQd3IzRHFpbnMvdlBqeTFlNzdXRHdkNnVPSzlNTHJRVHgvNzRZN2tHMjRhRDNtZkhBcjJBYUpiK010ZnhWV3JjLzZzMWFaZHQyWisyRHJYSmY3Z3UiLCJtYWMiOiI3ZmExYzUxMDIwYzhhYjkwZmEzNDlmY2FlMWI5ZGQ4NzdiZTU4YjRjZmM2MTRiNjUwNGVjNjk4ODlhYzQ4NjcyIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6Ii9NOE4wOUZGaVpML3BlYzcwSTVRUXc9PSIsInYmFsdWUiOiJZTjJOOWhPaVNBc254Szk2K0pSejV5Q0VQNXFqM1ZwZEJtcUVQamdKb0liVzJZcFFjL1JKTVZ3TWJ0NkMyQzl3QXU4QzkwYjdyQnhnTDErcUpwSUZreWtJV2ZKREhGY2NNN0JNazIvZDcyVUFldDcraFMyb2kweEJyWmZDdThxcVgiLCJtYWMiOiI1ZGZiOWE0ODU4YjgyZTQwYmUxMjZjNzg0ZGM5YzcxOWM1ZmNhMmM1N2FhY2U1NjA5NDZhMDliNGZlNDc4MjE0IiwidGFnIjoiIn0%3D',
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'same-origin'
@@ -74,6 +74,65 @@ def search_page():
         error_message=error_message
     )
 
+# --- Flask Route for Anime Episode Selection ---
+@app.route('/anime/<string:anime_session_id>', methods=['GET'])
+def anime_detail(anime_session_id):
+    """
+    Fetches and displays episodes for a given anime session ID.
+    """
+    episodes = []
+    error_message = None
+    anime_title = "Anime Episodes" # Default title, can be updated if more info is passed
+
+    try:
+        # Fetch episode data for the given anime_session_id
+        params = {
+            'm': 'release',
+            'id': anime_session_id,
+            'sort': 'episode_asc',
+            'page': 1 # Fetching only the first page of episodes for now
+        }
+        app.logger.info(f"Fetching episodes for session ID: {anime_session_id}")
+        response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
+        response.raise_for_status()
+        json_data = response.json()
+        
+        # --- DEBUGGING LOGS ---
+        app.logger.info(f"Raw JSON data from release API for {anime_session_id}: {json_data}")
+
+        # CORRECTED: The 'release' API returns episodes within a 'data' key.
+        episodes = json_data.get('data', [])
+        
+        # The API usually returns episodes sorted, but we can sort explicitly if needed
+        # Example if sorting by 'episode' number is crucial and not guaranteed by API:
+        # episodes.sort(key=lambda x: x.get('episode', 0))
+
+        app.logger.info(f"Processed episodes for {anime_session_id}: {episodes}")
+        # --- END DEBUGGING LOGS ---
+
+        # If there are episodes, we can try to infer a title from the API response
+        # or, ideally, pass the anime title from the search results to this function
+        # if you want a more specific title than just the session ID.
+        if episodes:
+            anime_title = f"Episodes for Anime ID: {anime_session_id}" 
+            # If you passed anime_title from the search, you'd use that here instead.
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}): {e}")
+        error_message = f"Could not fetch episode data. Please try again later. ({e})"
+    except Exception as e:
+        app.logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}): {e}")
+        error_message = f"An unexpected error occurred: {e}"
+
+    return render_template(
+        'episode_selection.html', 
+        anime_session_id=anime_session_id, 
+        episodes=episodes, 
+        error_message=error_message,
+        anime_title=anime_title # Pass the title to the template
+    )
+
+
 # --- Flask Route for Image Proxying ---
 @app.route('/proxy-image')
 def proxy_image():
@@ -87,10 +146,7 @@ def proxy_image():
         return "Image URL not provided", 400
 
     try:
-        # Fetch the image using requests. Re-using API_HEADERS as they often contain useful info
-        # for external sites, but not strictly necessary for simple image fetching.
-        # Set stream=True for potentially large files, and content_type will be derived
-        # from response headers.
+        # Fetch the image using requests.
         response = requests.get(image_url, headers=API_HEADERS, stream=True, timeout=10)
         response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
 
@@ -98,8 +154,6 @@ def proxy_image():
         mimetype = response.headers.get('Content-Type', 'application/octet-stream')
         
         # Return the image content with the correct MIME type
-        # send_file requires a file-like object or a path, so we'll just return content directly
-        # with the mimetype header.
         return response.content, 200, {'Content-Type': mimetype}
 
     except requests.exceptions.RequestException as e:

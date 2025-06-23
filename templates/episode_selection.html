@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Episodes - {{ anime_title }}</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link to your custom stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen antialiased page-enter-active">
+    <div class="container mx-auto px-4 py-8 md:py-16">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                {{ anime_title }}
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400">
+                Select an episode to watch.
+            </p>
+            <div class="mt-6">
+                <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7.5 9.086l-1.793-1.793a1 1 0 00-1.414 1.414l2.5 2.5a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    Back to Search
+                </a>
+            </div>
+        </header>
+
+        <!-- Episode List Section -->
+        <main>
+            {% if error_message %}
+                <div class="text-center py-12 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <p class="text-red-600 dark:text-red-400 font-semibold">An error occurred:</p>
+                    <p class="text-red-500 dark:text-red-400 mt-1">{{ error_message }}</p>
+                </div>
+            {% elif episodes %}
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    {% for episode in episodes %}
+                        <a href="https://animepahe.ru/play/{{ anime_session_id }}/{{ episode.session }}" target="_blank" rel="noopener noreferrer" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
+                            <img 
+                                src="{{ url_for('proxy_image', url=episode.snapshot) }}" 
+                                alt="Snapshot for Episode {{ episode.episode }}" 
+                                class="w-full h-auto object-cover"
+                                onerror="console.log('Failed to load proxy episode snapshot:', this.src); this.onerror=null;this.src='https://placehold.co/300x168/000000/FFFFFF?text=No+Snapshot';"
+                            >
+                            <div class="p-4">
+                                <h3 class="font-bold text-gray-900 dark:text-white truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
+                                {% if episode.title %}
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 truncate" title="{{ episode.title }}">{{ episode.title }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600 dark:text-gray-400">{{ episode.duration }}</p>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No episodes found</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Unable to retrieve episode list for this anime.</p>
+                </div>
+            {% endif %}
+        </main>
+
+    </div>
+</body>
+</html>

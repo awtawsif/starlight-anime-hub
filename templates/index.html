@@ -13,7 +13,7 @@
     <!-- Link to your custom stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen antialiased">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen antialiased page-enter-active">
     <div class="container mx-auto px-4 py-8 md:py-16">
         
         <header class="text-center mb-12">
@@ -71,7 +71,7 @@
                 {% elif results %}
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                         {% for item in results %}
-                            <a href="https://animepahe.ru/anime/{{ item.session }}" target="_blank" rel="noopener noreferrer" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
+                            <a href="{{ url_for('anime_detail', anime_session_id=item.session) }}" class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md search-card overflow-hidden">
                                 <img 
                                     src="{{ url_for('proxy_image', url=item.poster) }}" 
                                     alt="Poster for {{ item.title }}" 
