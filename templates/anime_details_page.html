@@ -88,7 +88,69 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Relations Section -->
+            {% if anime_details.relations %}
+            <section class="mt-12 bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in-up">
+                <h3 class="text-3xl font-bold text-white mb-6 text-center md:text-left">Relations</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for relation in anime_details.relations %}
+                    <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
+                        <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
+                            <a href="{{ url_for('anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}">
+                                <img src="{{ url_for('proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';">
+                            </a>
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="text-blue-400 text-sm font-semibold mb-1">{{ relation.relation_type_label }}</h4>
+                            <h5 class="text-lg font-bold text-white leading-tight mb-1">
+                                <a href="{{ url_for('anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}" class="hover:text-blue-300 transition-colors duration-200">
+                                    {{ relation.title }}
+                                </a>
+                            </h5>
+                            <p class="text-gray-300 text-sm">
+                                <span class="font-medium">{{ relation.type }}</span> &middot; 
+                                {{ relation.episodes_status }}<br>
+                                {% if relation.season != 'N/A' %}<span class="text-gray-400">{{ relation.season }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
             {% endif %}
+
+            <!-- Recommendations Section -->
+            {% if anime_details.recommendations %}
+            <section class="mt-12 bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in-up">
+                <h3 class="text-3xl font-bold text-white mb-6 text-center md:text-left">Anime You Might Like</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for rec in anime_details.recommendations %}
+                    <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
+                        <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
+                            <a href="{{ url_for('anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}">
+                                <img src="{{ url_for('proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';">
+                            </a>
+                        </div>
+                        <div class="flex-grow">
+                            <h5 class="text-lg font-bold text-white leading-tight mb-1">
+                                <a href="{{ url_for('anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}" class="hover:text-blue-300 transition-colors duration-200">
+                                    {{ rec.title }}
+                                </a>
+                            </h5>
+                            <p class="text-gray-300 text-sm">
+                                <span class="font-medium">{{ rec.type }}</span> &middot; 
+                                {{ rec.episodes_status }}<br>
+                                {% if rec.season != 'N/A' %}<span class="text-gray-400">{{ rec.season }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% endif %} {# End of if error_message block #}
         </main>
     </div>
 

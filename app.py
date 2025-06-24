@@ -76,6 +76,77 @@ def search_page():
         error_message=error_message
     )
 
+def _parse_related_anime_card(card_row_element):
+    """
+    Parses a BeautifulSoup element representing a single anime card (div with row mx-n1)
+    from relations or recommendations sections.
+    """
+    anime_card_data = {
+        'session_id': 'N/A',
+        'title': 'N/A',
+        'poster': "https://placehold.co/100x150/1a202c/ffffff?text=No+Img", # Default for small posters
+        'type': 'N/A',
+        'episodes_status': 'N/A',
+        'season': 'N/A'
+    }
+
+    # Extract poster and main link
+    img_link_container = card_row_element.find('div', class_='col-2')
+    if img_link_container:
+        img_tag = img_link_container.find('img')
+        if img_tag:
+            anime_card_data['poster'] = img_tag.get('data-src') or img_tag.get('src')
+            if not anime_card_data['poster']:
+                anime_card_data['poster'] = "https://placehold.co/100x150/1a202c/ffffff?text=No+Img"
+        
+        main_link_tag = img_link_container.find('a')
+        if main_link_tag and main_link_tag.get('href'):
+            session_match = re.search(r'/anime/([a-f0-9-]+)', main_link_tag.get('href'))
+            if session_match:
+                anime_card_data['session_id'] = session_match.group(1)
+
+    # Extract title, type, episodes/status, and season from the info column
+    info_col = card_row_element.find('div', class_='col-9')
+    if info_col:
+        # Title
+        title_tag = info_col.find('h5')
+        if title_tag and title_tag.find('a'):
+            anime_card_data['title'] = title_tag.find('a').get('title') or title_tag.find('a').get_text(strip=True)
+            # If session_id wasn't found from poster link, try from title link (more reliable perhaps)
+            if anime_card_data['session_id'] == 'N/A' and title_tag.find('a').get('href'):
+                 session_match = re.search(r'/anime/([a-f0-9-]+)', title_tag.find('a').get('href'))
+                 if session_match:
+                     anime_card_data['session_id'] = session_match.group(1)
+
+        # Type, Episodes, Status
+        strong_tag = info_col.find('strong')
+        if strong_tag:
+            type_link = strong_tag.find('a')
+            if type_link:
+                anime_card_data['type'] = type_link.get_text(strip=True)
+            
+            # Extract text after <strong>, before <br>
+            episodes_status_text = ""
+            current_sibling = strong_tag.next_sibling
+            while current_sibling:
+                if current_sibling.name == 'br':
+                    break
+                if isinstance(current_sibling, str):
+                    episodes_status_text += current_sibling
+                elif current_sibling.name == 'a': # In case type link is also within this flow
+                    episodes_status_text += current_sibling.get_text(strip=True)
+                current_sibling = current_sibling.next_sibling
+            
+            anime_card_data['episodes_status'] = re.sub(r'^-', '', episodes_status_text).strip() # Remove leading hyphen and strip
+
+        # Season
+        season_link = info_col.find('a', href=re.compile(r'/anime/season/'))
+        if season_link:
+            anime_card_data['season'] = season_link.get_text(strip=True)
+
+    return anime_card_data
+
+
 # --- Flask Route for Anime Details Page ---
 @app.route('/anime/<string:anime_session_id>', methods=['GET'])
 def anime_detail(anime_session_id):
@@ -85,17 +156,35 @@ def anime_detail(anime_session_id):
     The anime title is now passed from the search page for reliability.
     """
     detail_url = f"{ANIME_PAGE_BASE_URL}/{anime_session_id}"
-    anime_details = {}
+    anime_details = {
+        'title': 'N/A',
+        'synopsis': 'No synopsis available.',
+        'poster': "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter",
+        'synonyms': 'N/A', 
+        'japanese': 'N/A', 
+        'type': 'N/A', 
+        'episodes': 'N/A', 
+        'status': 'N/A', 
+        'duration': 'N/A', 
+        'aired': 'N/A', 
+        'season': 'N/A', 
+        'studio': 'N/A', 
+        'theme': 'N/A', 
+        'demographic': 'N/A', 
+        'genre': 'N/A',
+        'relations': [], # New: To store related anime (sequel, prequel, summary etc.)
+        'recommendations': [] # New: To store recommended anime
+    }
     error_message = None
 
     # Get anime_title from query parameters, using it as the primary title
+    # Flask automatically URL-decodes query parameters, so no manual decoding is needed.
     anime_details['title'] = request.args.get('anime_title', 'N/A')
 
     try:
         app.logger.info(f"Fetching anime details from: {detail_url}")
         response = requests.get(detail_url, headers=API_HEADERS, timeout=15)
         response.raise_for_status()
-        # Changed parser to 'lxml'
         soup = BeautifulSoup(response.text, 'lxml') 
 
         # Extract Synopsis (from anime-synopsis)
@@ -106,13 +195,10 @@ def anime_detail(anime_session_id):
         poster_div = soup.find('div', class_='anime-poster')
         if poster_div:
             poster_img_tag = poster_div.find('img')
-            # Prioritize 'data-src' if available for lazy-loaded images, fallback to 'src'
             if poster_img_tag:
                 anime_details['poster'] = poster_img_tag.get('data-src') or poster_img_tag.get('src')
-            else:
-                anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
             
-            if not anime_details['poster']: # If still no poster, use placeholder
+            if not anime_details['poster']:
                  anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
         else:
             anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
@@ -120,42 +206,39 @@ def anime_detail(anime_session_id):
         # Extract other details from the anime-info list (col-sm-4 anime-info)
         info_column = soup.find('div', class_='col-sm-4 anime-info')
         if info_column:
-            # Iterate through all <p> tags directly under anime-info
             for p_tag in info_column.find_all('p', recursive=False):
-                # Skip external-links paragraph
                 if 'external-links' in p_tag.get('class', []):
                     continue
                 
                 strong_tag = p_tag.find('strong')
                 if not strong_tag:
-                    continue # Skip if no strong tag found within p
+                    continue 
 
-                # Extract the key (e.g., "Japanese", "Type", "Episodes")
                 key_text_parts = []
                 for content in strong_tag.contents:
                     if isinstance(content, str):
                         key_text_parts.append(content.strip())
-                    elif content.name == 'a': # If <a> is inside strong, do NOT add its text to the key
+                    elif content.name == 'a': 
                         pass 
                 key_raw = "".join(key_text_parts).strip()
                 key = key_raw.replace(':', '').strip().lower()
                 
-                value = 'N/A' # Default value
+                value = 'N/A' 
 
-                # CASE 1: Value is an <a> tag *inside* the <strong> tag (e.g., Type, Status, Season)
                 a_tag_inside_strong = strong_tag.find('a')
                 if a_tag_inside_strong:
                     value = a_tag_inside_strong.get_text(strip=True)
-                # CASE 2: Value is text content *after* the <strong> tag but within the same <p> tag
                 else:
-                    # Remove the strong tag to get the remaining text
-                    strong_tag.extract() # This modifies the p_tag itself
-                    value = p_tag.get_text(strip=True)
-                    value = re.sub(r'\s+', ' ', value).strip() # Normalize whitespace
+                    # Create a copy of the p_tag before modifying it for robust parsing
+                    temp_p_tag = BeautifulSoup(str(p_tag), 'lxml').find('p') 
+                    temp_strong_tag = temp_p_tag.find('strong')
+                    if temp_strong_tag: # Ensure strong tag exists in temp copy
+                        temp_strong_tag.extract() 
+                    value = temp_p_tag.get_text(strip=True)
+                    value = re.sub(r'\s+', ' ', value).strip() 
 
                 anime_details[key] = value if value else 'N/A'
             
-            # Special handling for Genre which is in a <div> with <ul> within info_column
             genre_div = info_column.find('div', class_='anime-genre')
             if genre_div:
                 genres = [a.get_text(strip=True) for a in genre_div.find_all('a')]
@@ -163,8 +246,37 @@ def anime_detail(anime_session_id):
             else:
                 anime_details['genre'] = 'N/A'
 
-        else:
-            pass 
+        # --- Extract Relations ---
+        relations_div = soup.find('div', class_='tab-content anime-relation row')
+        if relations_div:
+            # Find all individual relation sections (e.g., Sequel, Summary)
+            # The structure for a relation type section is col-12 col-sm-6
+            relation_type_sections = relations_div.find_all('div', class_=re.compile(r'col-12 col-sm-6'))
+            for section in relation_type_sections:
+                relation_type_tag = section.find('h4')
+                relation_type = relation_type_tag.find('span').get_text(strip=True) if relation_type_tag and relation_type_tag.find('span') else 'Unknown'
+                
+                # Find all individual anime cards within this relation type section
+                # Each anime card is a 'div' with class 'row mx-n1'
+                anime_cards = section.find_all('div', class_='row mx-n1')
+                for card_soup_element in anime_cards:
+                    parsed_card = _parse_related_anime_card(card_soup_element)
+                    parsed_card['relation_type_label'] = relation_type # Add relation type to the card data
+                    anime_details['relations'].append(parsed_card)
+
+
+        # --- Extract Recommendations ---
+        recommendations_div = soup.find('div', class_='tab-content anime-recommendation row')
+        if recommendations_div:
+            # Recommendations are also individual anime cards (div with class 'row mx-n1')
+            # directly under the main recommendations_div (inside col-12 col-sm-6 mb-3 elements)
+            recommendation_cards_containers = recommendations_div.find_all('div', class_=re.compile(r'col-12 col-sm-6'))
+            for container in recommendation_cards_containers:
+                anime_card_element = container.find('div', class_='row mx-n1')
+                if anime_card_element:
+                    parsed_card = _parse_related_anime_card(anime_card_element)
+                    anime_details['recommendations'].append(parsed_card)
+
 
         # Ensure all expected keys are present in anime_details dictionary for template consistency
         default_keys = ['synonyms', 'japanese', 'type', 'episodes', 'status', 'duration', 'aired', 'season', 'studio', 'theme', 'demographic', 'genre'] 
