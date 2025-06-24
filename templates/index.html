@@ -73,17 +73,47 @@
                 {% elif results %}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in results %}
-                            <!-- FIX: Removed | urlencode here. url_for handles encoding parameters. -->
-                            <a href="{{ url_for('anime_detail', anime_session_id=item.session, anime_title=item.title) }}" class="anime-card block bg-gray-800/70 border border-gray-700/50 rounded-xl shadow-xl overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/30">
-                                <img 
-                                    src="{{ url_for('proxy_image', url=item.poster) }}" 
-                                    alt="Poster for {{ item.title }}" 
-                                    class="w-full h-auto object-cover aspect-[2/3] transform transition-transform duration-500 hover:scale-110"
-                                    onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
-                                >
-                                <div class="p-4 text-center">
-                                    <h3 class="font-bold text-white text-lg mb-1 truncate" title="{{ item.title }}">{{ item.title }}</h3>
-                                    <p class="text-sm text-blue-300">{{ item.type }} &middot; {{ item.year }}</p>
+                            <a href="{{ url_for('anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
+                               class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden 
+                                      transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30">
+                                
+                                <!-- Image container to control scaling and blend with text area -->
+                                <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
+                                    <img 
+                                        src="{{ url_for('proxy_image', url=item.poster) }}" 
+                                        alt="Poster for {{ item.title }}" 
+                                        class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
+                                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
+                                        loading="lazy"
+                                    >
+                                    <!-- Gradient overlay on image for blending -->
+                                    <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-gray-900/90 to-transparent z-0"></div>
+                                    {% if item.score %}
+                                    <div class="absolute top-3 right-3 z-20">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-yellow-400/90 text-gray-900 font-bold text-xs shadow-md ring-2 ring-yellow-300/60">
+                                            <svg class="w-4 h-4 mr-1 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.538 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.538-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z"></path></svg>
+                                            {{ "%.2f" | format(item.score) }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Initial text, visible when not hovered, blending with card background -->
+                                <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:invisible">
+                                    <h3 class="font-extrabold text-white text-lg mb-1 truncate drop-shadow" title="{{ item.title }}">{{ item.title }}</h3>
+                                    <p class="text-sm text-blue-300 font-medium">{{ item.type }} &middot; {{ item.year }}</p>
+                                </div>
+
+                                <!-- Hover Info: replaces initial info, same position/size, crossfade -->
+                                <div class="p-4 text-center bg-gray-900/90 flex-grow absolute left-0 right-0 bottom-0 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 rounded-b-2xl">
+                                    <div class="flex flex-wrap gap-x-2 gap-y-1 justify-center text-base mb-1">
+                                        <span class="text-blue-300 font-semibold">{{ item.type }}</span>
+                                        <span class="text-gray-300">| {{ item.episodes }} Ep.</span>
+                                        <span class="text-gray-300">| {{ item.status }}</span>
+                                    </div>
+                                    {% if item.season %}
+                                    <div class="text-gray-300 text-sm">Season: <span class="font-medium">{{ item.season }} {{ item.year }}</span></div>
+                                    {% endif %}
                                 </div>
                             </a>
                         {% endfor %}

@@ -51,6 +51,7 @@
                         alt="Poster for {{ anime_details.title }}" 
                         class="w-full h-auto object-cover rounded-lg shadow-lg border border-gray-600/50"
                         onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
+                        loading="lazy"
                     >
                 </div>
                 
@@ -98,7 +99,7 @@
                     <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
                         <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
                             <a href="{{ url_for('anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}">
-                                <img src="{{ url_for('proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';">
+                                <img src="{{ url_for('proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';" loading="lazy">
                             </a>
                         </div>
                         <div class="flex-grow">
@@ -129,7 +130,7 @@
                     <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
                         <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
                             <a href="{{ url_for('anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}">
-                                <img src="{{ url_for('proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';">
+                                <img src="{{ url_for('proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';" loading="lazy">
                             </a>
                         </div>
                         <div class="flex-grow">
@@ -139,7 +140,7 @@
                                 </a>
                             </h5>
                             <p class="text-gray-300 text-sm">
-                                <span class="font-medium">{{ rec.type }}</span> &middot; 
+                                <span class="font-medium">{{ rec.type }}</span>
                                 {{ rec.episodes_status }}<br>
                                 {% if rec.season != 'N/A' %}<span class="text-gray-400">{{ rec.season }}</span>{% endif %}
                             </p>
