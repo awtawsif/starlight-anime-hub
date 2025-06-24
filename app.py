@@ -478,6 +478,3 @@ def proxy_image():
 if __name__ == '__main__':
     # For local development only. In production, use Gunicorn or another WSGI server.
     app.run(debug=True)
-if __name__ == '__main__':
-    # For local development only. In production, use Gunicorn or another WSGI server.
-    app.run(debug=True)
