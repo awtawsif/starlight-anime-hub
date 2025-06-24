@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import re
 
 # Configure logging (minimal, or remove if not needed for production)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create a Flask application instance
 app = Flask(__name__)
@@ -182,7 +182,8 @@ def anime_detail(anime_session_id):
     anime_details['title'] = request.args.get('anime_title', 'N/A')
 
     try:
-        app.logger.info(f"Fetching anime details from: {detail_url}")
+        # Only keep info log for fetching details (optional, can be removed if not needed)
+        # app.logger.info(f"Fetching anime details from: {detail_url}")
         response = requests.get(detail_url, headers=API_HEADERS, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'lxml') 
@@ -332,13 +333,10 @@ def episode_selection_page(anime_session_id):
             'sort': 'episode_asc',
             'page': page
         }
-        app.logger.info(f"Fetching episodes for session ID: {anime_session_id}, page: {page}")
         response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
         response.raise_for_status()
         json_data = response.json()
         
-        app.logger.info(f"Raw JSON data from release API for {anime_session_id} (page {page}): {json_data}")
-
         # The 'release' API returns episodes within a 'data' key.
         episodes = json_data.get('data', [])
         
@@ -356,8 +354,6 @@ def episode_selection_page(anime_session_id):
             pagination_data['next_page_url'] = url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
         if cp > 1:
             pagination_data['prev_page_url'] = url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1)
-
-        app.logger.info(f"Processed episodes for {anime_session_id} (page {page}): {episodes}")
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
@@ -384,7 +380,6 @@ def get_episode_downloads(anime_session_id, episode_session_id):
     to extract the real kwik.si download URLs from embedded JavaScript.
     """
     play_url = f"https://animepahe.ru/play/{anime_session_id}/{episode_session_id}"
-    app.logger.info(f"Attempting to fetch initial download links from: {play_url}")
     final_downloads = []
     
     try:
@@ -406,7 +401,7 @@ def get_episode_downloads(anime_session_id, episode_session_id):
                 text = link_tag.get_text(strip=True) # e.g., "df68 · 360p (46MB) BD"
                 
                 if initial_href:
-                    app.logger.info(f"Fetching redirect page: {initial_href}")
+                    # Remove info log for fetching redirect page
                     try:
                         # 2. Fetch the redirect page (e.g., pahe.win/cvhun)
                         # Use a new User-Agent that might be more generally accepted by redirection services
@@ -426,38 +421,22 @@ def get_episode_downloads(anime_session_id, episode_session_id):
                         if script_tags:
                             target_script = script_tags[0] # Assume the first script tag
                             script_content = target_script.string
-                            app.logger.info(f"Content of target script (first script tag): {script_content[:500]}...") # Log first 500 chars
 
                             if script_content and 'kwik.si' in script_content:
                                 # Regex to find https://kwik.si/f/ followed by alphanumeric characters
                                 match = re.search(r'https:\/\/kwik\.si\/f\/[a-zA-Z0-9]+', script_content)
                                 if match:
                                     found_kwik_link = match.group(0)
-                                    app.logger.info(f"Regex match result: Found kwik.si link: {found_kwik_link}")
-                                else:
-                                    app.logger.warning(f"Regex match failed for kwik.si link in script content for {initial_href}. Script content might not contain the pattern.")
-                            else:
-                                app.logger.warning(f"Script content is empty or does not contain 'kwik.si' for {initial_href}.")
-                        else:
-                            app.logger.warning(f"No <script type='text/javascript'> tags found on redirect page: {initial_href}")
-
-
+                                    
                         if found_kwik_link:
                             final_downloads.append({'text': text, 'href': found_kwik_link})
-                        else:
-                            app.logger.warning(f"No kwik.si link found after processing for initial link: {initial_href}")
-
                     except requests.exceptions.RequestException as e:
                         app.logger.error(f"Error fetching redirect page {initial_href}: {e}")
                     except Exception as e:
                         app.logger.error(f"Error parsing redirect page {initial_href}: {e}")
-                else:
-                    app.logger.warning(f"Initial download link href was empty for text: {text}")
-
-            app.logger.info(f"Found {len(final_downloads)} final download links for episode {episode_session_id}.")
-        else:
-            app.logger.warning(f"Download div (id=pickDownload) not found on play page: {play_url}")
-
+                # Remove warning log for empty href
+            # Remove info log for found download links
+        # Remove warning log for missing download div
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error fetching play page for downloads ({play_url}): {e}")
         return jsonify({'error': 'Could not fetch initial download data. Network issue.'}), 500
@@ -477,7 +456,6 @@ def proxy_image():
     """
     image_url = request.args.get('url')
     if not image_url:
-        app.logger.warning("Attempted to proxy image without a URL.")
         return "Image URL not provided", 400
 
     try:
@@ -491,14 +469,15 @@ def proxy_image():
         # Return the image content with the correct MIME type
         return response.content, 200, {'Content-Type': mimetype}
 
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error proxying image {image_url}: {e}")
+    except requests.exceptions.RequestException:
         return "Error loading image", 500
-    except Exception as e:
-        app.logger.error(f"An unexpected error occurred while proxying image {image_url}: {e}")
+    except Exception:
         return "An unexpected error occurred while proxying image", 500
 
 # --- Run the Application ---
+if __name__ == '__main__':
+    # For local development only. In production, use Gunicorn or another WSGI server.
+    app.run(debug=True)
 if __name__ == '__main__':
     # For local development only. In production, use Gunicorn or another WSGI server.
     app.run(debug=True)
