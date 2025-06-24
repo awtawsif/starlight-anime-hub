@@ -73,6 +73,7 @@
                 {% elif results %}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in results %}
+                            <!-- FIX: Removed | urlencode here. url_for handles encoding parameters. -->
                             <a href="{{ url_for('anime_detail', anime_session_id=item.session, anime_title=item.title) }}" class="anime-card block bg-gray-800/70 border border-gray-700/50 rounded-xl shadow-xl overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/30">
                                 <img 
                                     src="{{ url_for('proxy_image', url=item.poster) }}" 
@@ -101,7 +102,7 @@
                 <div class="text-center py-20 text-gray-400 animate-fade-in">
                     <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                    </svg>
+                        </svg>
                     <p class="text-xl">Embark on your anime journey.</p>
                     <p class="text-lg mt-2">Enter a series name in the cosmic search bar above to begin.</p>
                 </div>

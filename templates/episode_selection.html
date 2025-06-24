@@ -5,20 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Episodes - {{ anime_title }} | Starlight Anime Hub</title>
-    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
     <div class="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col">
 
-        <!-- Header Section -->
         <header class="text-center mb-12 animate-fade-in-down">
             <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-3 leading-tight tracking-wide drop-shadow-lg">
                 Episodes for: <span class="text-blue-400">{{ anime_title }}</span>
@@ -27,16 +23,16 @@
                 Select an episode to embark on your viewing adventure.
             </p>
             <div class="mt-6 animate-fade-in-up">
-                <a href="/" class="inline-flex items-center px-6 py-3 border border-blue-600 text-white font-semibold rounded-lg shadow-md bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 btn-gradient">
+                <!-- FIX: Removed | urlencode here. url_for handles encoding parameters. -->
+                <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}" class="inline-flex items-center px-6 py-3 border border-blue-600 text-white font-semibold rounded-lg shadow-md bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 btn-gradient">
                     <svg class="-ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
                     </svg>
-                    Back to Search
+                    Back to Anime Details
                 </a>
             </div>
         </header>
 
-        <!-- Episode List Section -->
         <main class="flex-grow">
             {% if error_message %}
             <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
@@ -59,16 +55,17 @@
                 {% endfor %}
             </div>
 
-            <!-- Pagination Controls -->
             <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up">
                 {% set current_page = pagination.current_page %}
                 {% set last_page = pagination.last_page %}
                 {% set anime_session_id = anime_session_id %}
-                {% set anime_title_encoded = anime_title | urlencode %} {# URL encode the title for safe passing #}
+                {# FIX: Removed | urlencode from anime_title_encoded assignment #}
+                {% set anime_title_for_url = anime_title %} 
 
                 {# Previous Button #}
                 {% if pagination.prev_page_url %}
-                <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title_encoded, page=current_page - 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
+                <!-- FIX: Removed | urlencode here -->
+                <a href="{{ url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page - 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
                     Previous
                 </a>
                 {% else %}
@@ -89,14 +86,16 @@
 
                 {# First Page Link #}
                 {% if start_page > 1 %}
-                    <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title_encoded, page=1) }}" class="px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                    <!-- FIX: Removed | urlencode here -->
+                    <a href="{{ url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
                     {% if start_page > 2 %}
-                        <span class="px-4 py-3 text-gray-500">...</span>
+                        <span class="px-4 py-2 text-gray-500">...</span>
                     {% endif %}
                 {% endif %}
 
                 {% for p in range(start_page, end_page + 1) %}
-                    <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title_encoded, page=p) }}" class="px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
+                    <!-- FIX: Removed | urlencode here -->
+                    <a href="{{ url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
                         {{ p }}
                     </a>
                 {% endfor %}
@@ -104,14 +103,16 @@
                 {# Last Page Link #}
                 {% if end_page < last_page %}
                     {% if end_page < last_page - 1 %}
-                        <span class="px-4 py-3 text-gray-500">...</span>
+                        <span class="px-4 py-2 text-gray-500">...</span>
                     {% endif %}
-                    <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title_encoded, page=last_page) }}" class="px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
+                    <!-- FIX: Removed | urlencode here -->
+                    <a href="{{ url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
                 {% endif %}
 
                 {# Next Button #}
                 {% if pagination.next_page_url %}
-                <a href="{{ url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title_encoded, page=current_page + 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
+                <!-- FIX: Removed | urlencode here -->
+                <a href="{{ url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page + 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
                     Next
                 </a>
                 {% else %}
@@ -133,7 +134,6 @@
         </main>
     </div>
 
-    <!-- Download Modal -->
     <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-fade">
         <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 w-11/12 max-w-md mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
@@ -224,7 +224,6 @@
             }
         });
     </script>
-    <!-- Footer -->
     <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
         &copy; 2024 Starlight Anime Hub. All rights reserved.
     </footer>

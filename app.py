@@ -4,7 +4,7 @@ import logging
 from bs4 import BeautifulSoup
 import re
 
-# Configure logging
+# Configure logging (minimal, or remove if not needed for production)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create a Flask application instance
@@ -13,6 +13,7 @@ app = Flask(__name__)
 # --- API Configuration ---
 # The base URL and headers for the animepahe API
 API_BASE_URL = "https://animepahe.ru/api"
+ANIME_PAGE_BASE_URL = "https://animepahe.ru/anime" # New base URL for detail pages
 API_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0',
     'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -75,13 +76,124 @@ def search_page():
         error_message=error_message
     )
 
-# --- Flask Route for Anime Episode Selection ---
+# --- Flask Route for Anime Details Page ---
 @app.route('/anime/<string:anime_session_id>', methods=['GET'])
 def anime_detail(anime_session_id):
     """
+    Fetches and displays full details for a given anime session ID by scraping
+    the animepahe.ru/anime/{anime_session_id} page.
+    The anime title is now passed from the search page for reliability.
+    """
+    detail_url = f"{ANIME_PAGE_BASE_URL}/{anime_session_id}"
+    anime_details = {}
+    error_message = None
+
+    # Get anime_title from query parameters, using it as the primary title
+    anime_details['title'] = request.args.get('anime_title', 'N/A')
+
+    try:
+        app.logger.info(f"Fetching anime details from: {detail_url}")
+        response = requests.get(detail_url, headers=API_HEADERS, timeout=15)
+        response.raise_for_status()
+        # Changed parser to 'lxml'
+        soup = BeautifulSoup(response.text, 'lxml') 
+
+        # Extract Synopsis (from anime-synopsis)
+        synopsis_tag = soup.find('div', class_='anime-synopsis')
+        anime_details['synopsis'] = synopsis_tag.get_text(strip=True) if synopsis_tag else 'No synopsis available.'
+
+        # Extract Poster (from anime-poster)
+        poster_div = soup.find('div', class_='anime-poster')
+        if poster_div:
+            poster_img_tag = poster_div.find('img')
+            # Prioritize 'data-src' if available for lazy-loaded images, fallback to 'src'
+            if poster_img_tag:
+                anime_details['poster'] = poster_img_tag.get('data-src') or poster_img_tag.get('src')
+            else:
+                anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
+            
+            if not anime_details['poster']: # If still no poster, use placeholder
+                 anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
+        else:
+            anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
+
+        # Extract other details from the anime-info list (col-sm-4 anime-info)
+        info_column = soup.find('div', class_='col-sm-4 anime-info')
+        if info_column:
+            # Iterate through all <p> tags directly under anime-info
+            for p_tag in info_column.find_all('p', recursive=False):
+                # Skip external-links paragraph
+                if 'external-links' in p_tag.get('class', []):
+                    continue
+                
+                strong_tag = p_tag.find('strong')
+                if not strong_tag:
+                    continue # Skip if no strong tag found within p
+
+                # Extract the key (e.g., "Japanese", "Type", "Episodes")
+                key_text_parts = []
+                for content in strong_tag.contents:
+                    if isinstance(content, str):
+                        key_text_parts.append(content.strip())
+                    elif content.name == 'a': # If <a> is inside strong, do NOT add its text to the key
+                        pass 
+                key_raw = "".join(key_text_parts).strip()
+                key = key_raw.replace(':', '').strip().lower()
+                
+                value = 'N/A' # Default value
+
+                # CASE 1: Value is an <a> tag *inside* the <strong> tag (e.g., Type, Status, Season)
+                a_tag_inside_strong = strong_tag.find('a')
+                if a_tag_inside_strong:
+                    value = a_tag_inside_strong.get_text(strip=True)
+                # CASE 2: Value is text content *after* the <strong> tag but within the same <p> tag
+                else:
+                    # Remove the strong tag to get the remaining text
+                    strong_tag.extract() # This modifies the p_tag itself
+                    value = p_tag.get_text(strip=True)
+                    value = re.sub(r'\s+', ' ', value).strip() # Normalize whitespace
+
+                anime_details[key] = value if value else 'N/A'
+            
+            # Special handling for Genre which is in a <div> with <ul> within info_column
+            genre_div = info_column.find('div', class_='anime-genre')
+            if genre_div:
+                genres = [a.get_text(strip=True) for a in genre_div.find_all('a')]
+                anime_details['genre'] = ', '.join(genres) if genres else 'N/A'
+            else:
+                anime_details['genre'] = 'N/A'
+
+        else:
+            pass 
+
+        # Ensure all expected keys are present in anime_details dictionary for template consistency
+        default_keys = ['synonyms', 'japanese', 'type', 'episodes', 'status', 'duration', 'aired', 'season', 'studio', 'theme', 'demographic', 'genre'] 
+        for k in default_keys:
+            if k not in anime_details:
+                anime_details[k] = 'N/A'
+        
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"API Request Error fetching anime details ({detail_url}): {e}")
+        error_message = f"Could not fetch anime details. Please try again later. ({e})"
+    except Exception as e:
+        app.logger.error(f"An unexpected error occurred while parsing anime details ({detail_url}): {e}")
+        error_message = f"An unexpected error occurred: {e}"
+
+    return render_template(
+        'anime_details_page.html', 
+        anime_session_id=anime_session_id, 
+        anime_details=anime_details,
+        error_message=error_message
+    )
+
+
+# --- Flask Route for Anime Episode Selection ---
+@app.route('/episodes/<string:anime_session_id>', methods=['GET'])
+def episode_selection_page(anime_session_id):
+    """
     Fetches and displays episodes for a given anime session ID with pagination.
-    
-    The anime_title is now passed as a query parameter from index.html to improve UX.
+    This route is now specifically for episode listing.
     """
     episodes = []
     error_message = None
@@ -129,9 +241,9 @@ def anime_detail(anime_session_id):
         cp = pagination_data['current_page']
         lp = pagination_data['last_page']
         if cp < lp:
-            pagination_data['next_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
+            pagination_data['next_page_url'] = url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
         if cp > 1:
-            pagination_data['prev_page_url'] = url_for('anime_detail', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1)
+            pagination_data['prev_page_url'] = url_for('episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1)
 
         app.logger.info(f"Processed episodes for {anime_session_id} (page {page}): {episodes}")
 
@@ -139,7 +251,7 @@ def anime_detail(anime_session_id):
         app.logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
         error_message = f"Could not fetch episode data. Please try again later. ({e})"
     except Exception as e:
-        app.logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}, page: {page}): {e}")
+        app.logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}): {e}")
         error_message = f"An unexpected error occurred: {e}"
 
     return render_template(
