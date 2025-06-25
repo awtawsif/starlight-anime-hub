@@ -16,10 +16,10 @@
 </head>
 
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
-    <div class="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col">
+    <div class="container mx-auto px-4 pt-8 md:pt-16 flex-grow flex flex-col">
 
         <!-- Header Section -->
-        <header class="text-center mb-12 animate-fade-in-down">
+        <header class="text-center mb-8 animate-fade-in-down">
             <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-3 leading-tight tracking-wide drop-shadow-lg">
                 Anime Details
             </h1>
@@ -57,7 +57,7 @@
                 
                 <div class="md:w-2/3 text-center md:text-left">
                     <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">{{ anime_details.title }}</h2>
-                    <p class="text-gray-300 mb-6 leading-relaxed">{{ anime_details.synopsis }}</p>
+                    <p class="text-gray-300 line-clamp-5 mb-6 leading-relaxed cursor-pointer" onclick="toggleText(this)">{{ anime_details.synopsis }}</p><script> function toggleText(el) { el.classList.toggle('line-clamp-5'); }</script>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8 text-lg">
                         <p><strong class="text-blue-400">Type:</strong> {{ anime_details.type }}</p>

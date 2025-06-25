@@ -13,7 +13,7 @@
 </head>
 
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
-    <div class="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col">
+    <div class="container mx-auto px-4 pt-8 md:pt-16 flex-grow flex flex-col">
 
         <header class="text-center mb-12 animate-fade-in-down">
             <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-3 leading-tight tracking-wide drop-shadow-lg">
@@ -67,25 +67,14 @@
                 {% endfor %}
             </div>
 
-            <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up">
+            <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up flex-wrap">
                 {% set current_page = pagination.current_page %}
                 {% set last_page = pagination.last_page %}
                 {% set anime_session_id = anime_session_id %}
                 {% set anime_title_for_url = anime_title %} 
 
-                {# Previous Button #}
-                {% if pagination.prev_page_url %}
-                <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page - 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
-                    Previous
-                </a>
-                {% else %}
-                <span class="px-6 py-3 bg-gray-800/40 text-gray-500 rounded-lg cursor-not-allowed">
-                    Previous
-                </span>
-                {% endif %}
-
                 {# Page Numbers #}
-                {% set num_visible_pages = 5 %} {# Max number of page buttons to show (excluding First/Last) #}
+                {% set num_visible_pages = 4 %} {# Max number of page buttons to show (excluding First/Last) #}
                 {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
                 {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
 
@@ -96,14 +85,14 @@
 
                 {# First Page Link #}
                 {% if start_page > 1 %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
                     {% if start_page > 2 %}
-                        <span class="px-4 py-2 text-gray-500">...</span>
+                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                     {% endif %}
                 {% endif %}
 
                 {% for p in range(start_page, end_page + 1) %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
+                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
                         {{ p }}
                     </a>
                 {% endfor %}
@@ -111,20 +100,9 @@
                 {# Last Page Link #}
                 {% if end_page < last_page %}
                     {% if end_page < last_page - 1 %}
-                        <span class="px-4 py-2 text-gray-500">...</span>
+                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                     {% endif %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
-                {% endif %}
-
-                {# Next Button #}
-                {% if pagination.next_page_url %}
-                <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page + 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
-                    Next
-                </a>
-                {% else %}
-                <span class="px-6 py-3 bg-gray-800/40 text-gray-500 rounded-lg cursor-not-allowed">
-                    Next
-                </span>
+                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
                 {% endif %}
             </div>
 

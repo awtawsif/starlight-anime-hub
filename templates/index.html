@@ -15,10 +15,10 @@
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
     <!-- Main Container -->
-    <div class="container mx-auto px-4 py-8 md:py-16 flex-grow flex flex-col justify-center">
-        
+    <div class="container mx-auto px-4 pt-8 md:pt-16 flex-grow flex flex-col justify-center">
+
         <!-- Header Section -->
-        <header class="text-center mb-12 animate-fade-in-down">
+        <header class="text-center mb-4 animate-fade-in-down">
             <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
                 Starlight Anime Hub
             </h1>
@@ -160,7 +160,7 @@
                                 <!-- Text content -->
                                 <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0">
                                     <h3 class="font-bold text-white text-lg mb-1 truncate" title="{{ item.anime_title }}">{{ item.anime_title }}</h3>
-                                    <p class="text-sm text-blue-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }} - {{ item.fansub }}</p>
+                                    <p class="text-sm text-blue-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }}</p>
                                     <p class="text-xs text-gray-400 mt-1">Aired: {{ item.created_at.split(' ')[0] }}</p>
                                 </div>
                             </a>
@@ -168,23 +168,12 @@
                     </div>
 
                     <!-- Pagination for Airing Anime -->
-                    <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up">
+                    <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up flex-wrap"> {# Added flex-wrap here #}
                         {% set current_page = airing_pagination.current_page %}
                         {% set last_page = airing_pagination.last_page %}
 
-                        {# Previous Button #}
-                        {% if airing_pagination.prev_page_url %}
-                            <a href="{{ airing_pagination.prev_page_url }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
-                                Previous
-                            </a>
-                        {% else %}
-                            <span class="px-6 py-3 bg-gray-800/40 text-gray-500 rounded-lg cursor-not-allowed">
-                                Previous
-                            </span>
-                        {% endif %}
-
                         {# Page Numbers #}
-                        {% set num_visible_pages = 5 %}
+                        {% set num_visible_pages = 4 %}
                         {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
                         {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
 
@@ -194,14 +183,14 @@
 
                         {# First Page Link #}
                         {% if start_page > 1 %}
-                            <a href="{{ url_for('main.search_page', page=1) }}" class="px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                            <a href="{{ url_for('main.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
                             {% if start_page > 2 %}
-                                <span class="px-4 py-2 text-gray-500">...</span>
+                                <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
                         {% endif %}
 
                         {% for p in range(start_page, end_page + 1) %}
-                            <a href="{{ url_for('main.search_page', page=p) }}" class="px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
+                            <a href="{{ url_for('main.search_page', page=p) }}" class="mb-2 px-4 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105"> {# Changed px-5 to px-4 here #}
                                 {{ p }}
                             </a>
                         {% endfor %}
@@ -209,20 +198,9 @@
                         {# Last Page Link #}
                         {% if end_page < last_page %}
                             {% if end_page < last_page - 1 %}
-                                <span class="px-4 py-2 text-gray-500">...</span>
+                                <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
-                            <a href="{{ url_for('main.search_page', page=last_page) }}" class="px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
-                        {% endif %}
-
-                        {# Next Button #}
-                        {% if airing_pagination.next_page_url %}
-                            <a href="{{ airing_pagination.next_page_url }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
-                                Next
-                            </a>
-                        {% else %}
-                            <span class="px-6 py-3 bg-gray-800/40 text-gray-500 rounded-lg cursor-not-allowed">
-                                Next
-                            </span>
+                            <a href="{{ url_for('main.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a> {# Changed px-5 to px-4 here #}
                         {% endif %}
                     </div>
 
@@ -241,7 +219,7 @@
 
     <!-- Episode Options Modal (New Modal) -->
     <div id="episodeOptionsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-fade hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 w-11/12 max-w-sm mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
+        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 pl-12 w-11/12 max-w-sm mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
             <button onclick="closeEpisodeOptionsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -275,6 +253,11 @@
             <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
+        &copy; 2024 Starlight Anime Hub. All rights reserved.
+    </footer>
 
     <!-- Link to external JavaScript file -->
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
