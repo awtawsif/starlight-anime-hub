@@ -23,7 +23,6 @@
                 Select an episode to embark on your viewing adventure.
             </p>
             <div class="mt-6 animate-fade-in-up">
-                <!-- FIX: Changed url_for to use 'main.anime_detail' -->
                 <a href="{{ url_for('main.anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}" class="inline-flex items-center px-6 py-3 border border-blue-600 text-white font-semibold rounded-lg shadow-md bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 btn-gradient">
                     <svg class="-ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
@@ -72,12 +71,10 @@
                 {% set current_page = pagination.current_page %}
                 {% set last_page = pagination.last_page %}
                 {% set anime_session_id = anime_session_id %}
-                {# FIX: Removed | urlencode from anime_title_encoded assignment #}
                 {% set anime_title_for_url = anime_title %} 
 
                 {# Previous Button #}
                 {% if pagination.prev_page_url %}
-                <!-- FIX: Changed url_for to use 'main.episode_selection_page' -->
                 <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page - 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
                     Previous
                 </a>
@@ -99,7 +96,6 @@
 
                 {# First Page Link #}
                 {% if start_page > 1 %}
-                    <!-- FIX: Changed url_for to use 'main.episode_selection_page' -->
                     <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
                     {% if start_page > 2 %}
                         <span class="px-4 py-2 text-gray-500">...</span>
@@ -107,7 +103,6 @@
                 {% endif %}
 
                 {% for p in range(start_page, end_page + 1) %}
-                    <!-- FIX: Changed url_for to use 'main.episode_selection_page' -->
                     <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
                         {{ p }}
                     </a>
@@ -118,14 +113,11 @@
                     {% if end_page < last_page - 1 %}
                         <span class="px-4 py-2 text-gray-500">...</span>
                     {% endif %}
-                    <!-- FIX: Make last page button same size as others -->
-                    <!-- FIX: Changed url_for to use 'main.episode_selection_page' -->
                     <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
                 {% endif %}
 
                 {# Next Button #}
                 {% if pagination.next_page_url %}
-                <!-- FIX: Changed url_for to use 'main.episode_selection_page' -->
                 <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=current_page + 1) }}" class="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">
                     Next
                 </a>
@@ -149,7 +141,7 @@
     </div>
 
     <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-fade">
-        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 w-11/12 max-w-md mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
+        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 w-11/12 max-w-md mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -164,80 +156,8 @@
         </div>
     </div>
 
-    <script>
-        const downloadModal = document.getElementById('downloadModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const downloadLinksContainer = document.getElementById('downloadLinks');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const noLinksFoundMessage = document.getElementById('noLinksFound');
-        const errorMessage = document.getElementById('errorMessage');
-
-        function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
-            modalTitle.textContent = episodeTitle + ' - Download Options';
-            // Reset previous state
-            loadingMessage.classList.remove('hidden');
-            noLinksFoundMessage.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-            downloadLinksContainer.innerHTML = ''; 
-            downloadLinksContainer.appendChild(loadingMessage); // Re-add loading message for current fetch
-            
-            // Show modal with animations
-            downloadModal.classList.remove('hidden');
-            downloadModal.classList.add('active'); // Trigger CSS animation
-
-            fetch(`/api/episode-downloads/${animeSessionId}/${episodeSessionId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    loadingMessage.classList.add('hidden');
-                    if (data.downloads && data.downloads.length > 0) {
-                        data.downloads.forEach(link => {
-                            const a = document.createElement('a');
-                            a.href = link.href;
-                            a.textContent = link.text;
-                            a.target = '_blank';
-                            a.rel = 'noopener noreferrer';
-                            a.className = 'block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 transition-colors duration-200 shadow-md transform hover:scale-[1.02] active:scale-95 download-btn-gradient';
-                            downloadLinksContainer.appendChild(a);
-                        });
-                    } else {
-                        noLinksFoundMessage.classList.remove('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching download links:', error);
-                    loadingMessage.classList.add('hidden');
-                    errorMessage.textContent = 'Failed to load download links. Please check your connection or try again later.';
-                    errorMessage.classList.remove('hidden');
-                });
-        }
-
-        function closeModal() {
-            // Trigger CSS animation for closing
-            downloadModal.classList.remove('active');
-            downloadModal.addEventListener('transitionend', function handler() {
-                downloadModal.classList.add('hidden');
-                // Clear links and messages when closing the modal
-                downloadLinksContainer.innerHTML = '';
-                downloadLinksContainer.appendChild(loadingMessage); 
-                loadingMessage.classList.remove('hidden');
-                noLinksFoundMessage.classList.add('hidden');
-                errorMessage.classList.add('hidden');
-                downloadModal.removeEventListener('transitionend', handler); // Clean up listener
-            }, { once: true });
-        }
-
-        // Close modal when clicking outside of it
-        downloadModal.addEventListener('click', (event) => {
-            if (event.target === downloadModal) {
-                closeModal();
-            }
-        });
-    </script>
+    <!-- Link to external JavaScript file -->
+    <script src="{{ url_for('static', filename='js/episode_selection.js') }}"></script>
     <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
         &copy; 2024 Starlight Anime Hub. All rights reserved.
     </footer>
