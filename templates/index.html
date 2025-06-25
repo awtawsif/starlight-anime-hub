@@ -14,64 +14,78 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
-    <!-- Main Container -->
-    <div class="container mx-auto px-4 pt-8 md:pt-16 flex-grow flex flex-col justify-center">
 
-        <!-- Header Section -->
-        <header class="text-center mb-4 animate-fade-in-down">
-            <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
-                Starlight Anime Hub
-            </h1>
-            <p class="text-xl text-blue-300 font-light mb-8 max-w-2xl mx-auto">
-                Dive into a universe of captivating stories. Find, explore, and download your favorite anime.
-            </p>
-        </header>
+    <!-- Navigation Bar -->
+    <nav id="navbar" class="bg-gray-900/80 backdrop-blur-md sticky top-0 z-40 shadow-xl border-b border-gray-700/50 p-4 transition-all duration-300 ease-in-out">
+        <div class="container mx-auto flex justify-between items-center flex-wrap">
+            <!-- Logo/Brand -->
+            <a href="{{ url_for('main.search_page') }}" class="text-white text-3xl font-extrabold flex flex-col items-start lg:flex-row lg:items-center group">
+                <span class="text-xl md:text-2xl lg:text-3xl">Starlight <span class="text-blue-400">Anime</span> Hub</span>
+            </a>
 
-        <!-- Search Form -->
-        <!-- Reduced mb-16 to mb-10 for less prominence -->
-        <div class="max-w-3xl mx-auto w-full mb-10 animate-fade-in-up"> 
-            <form method="post" action="{{ url_for('main.search_page') }}" class="flex flex-col sm:flex-row items-center gap-4 bg-gray-800/60 backdrop-blur-md rounded-xl p-3 shadow-2xl border border-gray-700/50">
-                <div class="relative flex-grow w-full">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <svg class="h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
+            <!-- Mobile Menu Toggle -->
+            <button id="menu-toggle" class="lg:hidden text-white hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-2 transition-colors duration-200">
+                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+
+            <!-- Search Form (Collapsible on Mobile) -->
+            <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8 animate-fade-in">
+                <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-gray-800/60 rounded-lg p-2 w-full lg:w-auto">
                     <input 
                         type="text" 
                         name="query" 
-                        id="query" 
-                        value="{{ search_query }}"
-                        placeholder="Search for an anime series..."
-                        class="w-full pl-12 pr-6 py-3 bg-gray-700/50 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 border border-gray-600/50"
+                        id="nav-search-query" 
+                        placeholder="Search anime..."
+                        class="bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-0 w-full"
+                        value="{{ search_query if search_performed else '' }}"
                     >
-                </div>
-                <button 
-                    type="submit" 
-                    class="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-all duration-300 transform hover:scale-105 btn-gradient"
-                >
-                    Search
-                </button>
-            </form>
+                    <button type="submit" class="p-2 rounded-md text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
+    </nav>
 
-        <!-- Main Content Section -->
-        <main class="flex-grow">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col justify-center">
+
+        <!-- Initial Main Content Header for Airing or Search Results -->
+        <header class="text-center mb-12 animate-fade-in-down">
             {% if search_performed %}
-                <h2 class="text-3xl font-bold text-center text-white mb-10 animate-fade-in-up">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
+                    Search Results
+                </h1>
+                <p class="text-lg text-blue-300 font-light max-w-2xl mx-auto">
                     {% if results %}
                         Showing {{ results|length }} cosmic results for "<span class="text-blue-400">{{ search_query }}</span>"
                     {% else %}
                         No starlight found for "<span class="text-blue-400">{{ search_query }}</span>"
                     {% endif %}
-                </h2>
+                </p>
+            {% else %}
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
+                    Currently Airing Anime
+                </h1>
+                <p class="text-lg text-blue-300 mb-4 font-light max-w-2xl mx-auto">
+                    Dive into a universe of captivating stories. Explore the latest releases.
+                </p>
+            {% endif %}
+        </header>
 
-                {% if error_message %}
-                     <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
-                        <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
-                        <p class="text-red-200 text-md">{{ error_message }}</p>
-                    </div>
-                {% elif results %}
+        <!-- Main Content Section -->
+        <main class="flex-grow">
+            {% if error_message %}
+                 <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
+                    <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
+                    <p class="text-red-200 text-md">{{ error_message }}</p>
+                </div>
+            {% elif search_performed %}
+                {% if results %}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in results %}
                             <a href="{{ url_for('main.anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
@@ -119,18 +133,17 @@
                             </a>
                         {% endfor %}
                     </div>
+                {% else %}
+                    <div class="text-center py-20 text-gray-400 animate-fade-in">
+                        <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                        <p class="text-xl">No starlight found for "{{ search_query }}".</p>
+                        <p class="text-lg mt-2">Try a different search term or explore currently airing anime!</p>
+                    </div>
                 {% endif %}
             {% else %} {# This block now handles the airing anime homepage #}
-                <h2 class="text-3xl font-bold text-center text-white mb-10 animate-fade-in-up">
-                    Currently Airing Anime
-                </h2>
-
-                {% if error_message %}
-                    <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
-                        <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
-                        <p class="text-red-200 text-md">{{ error_message }}</p>
-                    </div>
-                {% elif airing_anime %}
+                {% if airing_anime %}
                     <!-- Changed grid layout for larger cards: from xl:grid-cols-6 to xl:grid-cols-5 -->
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in airing_anime %}
@@ -261,5 +274,54 @@
 
     <!-- Link to external JavaScript file -->
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script>
+        // JavaScript for mobile menu toggle
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const navLinks = document.getElementById('nav-links');
+            navLinks.classList.toggle('hidden');
+            navLinks.classList.toggle('flex');
+            // If the menu is being opened, apply fade-in
+            if (navLinks.classList.contains('flex')) {
+                navLinks.classList.remove('animate-fade-out');
+                navLinks.classList.add('animate-fade-in');
+            } else {
+                // If the menu is being closed, apply fade-out before hiding
+                navLinks.classList.remove('animate-fade-in');
+                navLinks.classList.add('animate-fade-out');
+            }
+        });
+
+        // Close mobile menu on larger screens when resized
+        window.addEventListener('resize', function() {
+            const navLinks = document.getElementById('nav-links');
+            if (window.innerWidth >= 1024) { // Tailwind's 'lg' breakpoint
+                navLinks.classList.remove('hidden', 'flex', 'animate-fade-in', 'animate-fade-out');
+                navLinks.style.display = ''; // Remove inline style
+            } else {
+                // Ensure it's hidden if we shrink from large to small
+                if (!navLinks.classList.contains('flex')) {
+                    navLinks.classList.add('hidden');
+                }
+            }
+        });
+
+        // JavaScript for hide on scroll
+        let lastScrollTop = 0;
+        const navbar = document.getElementById('navbar');
+        const navbarHeight = navbar.offsetHeight; // Get initial height
+
+        window.addEventListener('scroll', function() {
+            let currentScroll = window.scrollY || document.documentElement.scrollTop;
+
+            if (currentScroll > lastScrollTop && currentScroll > navbarHeight) {
+                // Scrolling down and past the navbar height
+                navbar.classList.add('-translate-y-full', 'opacity-0');
+            } else if (currentScroll < lastScrollTop || currentScroll <= 0) {
+                // Scrolling up or at the very top
+                navbar.classList.remove('-translate-y-full', 'opacity-0');
+            }
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll; // For Mobile or negative scrolling
+        });
+    </script>
 </body>
 </html>
