@@ -63,44 +63,47 @@
                 {% endfor %}
             </div>
 
-            <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up flex-wrap">
-                {% set current_page = pagination.current_page %}
-                {% set last_page = pagination.last_page %}
-                {% set anime_session_id = anime_session_id %}
-                {% set anime_title_for_url = anime_title %} 
+            {% if pagination.last_page > 1 %}
+                <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up flex-wrap">
+                    {% set current_page = pagination.current_page %}
+                    {% set last_page = pagination.last_page %}
+                    {% set anime_session_id = anime_session_id %}
+                    {% set anime_title_for_url = anime_title %}
 
-                {# Page Numbers #}
-                {% set num_visible_pages = 4 %} {# Max number of page buttons to show (excluding First/Last) #}
-                {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
-                {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
+                    {# Page Numbers #}
+                    {% set num_visible_pages = 4 %} {# Max number of page buttons to show (excluding First/Last) #}
+                    {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
+                    {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
 
-                {# Adjust start_page if end_page is constrained #}
-                {% if end_page - start_page + 1 < num_visible_pages %}
-                    {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
-                {% endif %}
-
-                {# First Page Link #}
-                {% if start_page > 1 %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
-                    {% if start_page > 2 %}
-                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                    {# Adjust start_page if end_page is constrained #}
+                    {% if end_page - start_page + 1 < num_visible_pages %}
+                        {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
                     {% endif %}
-                {% endif %}
 
-                {% for p in range(start_page, end_page + 1) %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
-                        {{ p }}
-                    </a>
-                {% endfor %}
-
-                {# Last Page Link #}
-                {% if end_page < last_page %}
-                    {% if end_page < last_page - 1 %}
-                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                    {# First Page Link #}
+                    {% if start_page > 1 %}
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                        {% if start_page > 2 %}
+                            <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                        {% endif %}
                     {% endif %}
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
-                {% endif %}
-            </div>
+
+                    {# Page numbers #}
+                    {% for p in range(start_page, end_page + 1) %}
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
+                            {{ p }}
+                        </a>
+                    {% endfor %}
+
+                    {# Last Page Link #}
+                    {% if end_page < last_page %}
+                        {% if end_page < last_page - 1 %}
+                            <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                        {% endif %}
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             {% else %}
             <div class="text-center py-16 text-gray-400 animate-fade-in">

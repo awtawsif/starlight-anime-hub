@@ -207,6 +207,19 @@ def fetch_anime_details(anime_session_id):
             else:
                 anime_details['genre'] = 'N/A'
 
+        # Supplement episode count via API if missing or unreliable
+        if anime_details.get('episodes', 'N/A') in ('N/A', '', None):
+            try:
+                episode_api_url = f"{API_BASE_URL}?m=release&id={anime_session_id}&sort=episode_desc&page=1"
+                response = requests.get(episode_api_url, headers=API_HEADERS, timeout=10)
+                response.raise_for_status()
+                json_data = response.json()
+                episodes_total = json_data.get('total')
+                if episodes_total:
+                    anime_details['episodes'] = str(episodes_total)
+            except Exception as e:
+                logger.warning(f"Could not fetch episode total from API for {anime_session_id}: {e}")
+
         # Extract Relations
         relations_div = soup.find('div', class_='tab-content anime-relation row')
         if relations_div:
