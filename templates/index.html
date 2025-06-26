@@ -16,40 +16,7 @@
 <body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
 
     <!-- Navigation Bar -->
-    <nav id="navbar" class="bg-gray-900/80 backdrop-blur-md sticky top-0 z-40 shadow-xl border-b border-gray-700/50 p-4 transition-all duration-300 ease-in-out">
-        <div class="container mx-auto flex justify-between items-center flex-wrap">
-            <!-- Logo/Brand -->
-            <a href="{{ url_for('main.search_page') }}" class="text-white text-3xl font-extrabold flex flex-col items-start lg:flex-row lg:items-center group">
-                <span class="text-xl md:text-2xl lg:text-3xl">Starlight <span class="text-blue-400">Anime</span> Hub</span>
-            </a>
-
-            <!-- Mobile Menu Toggle -->
-            <button id="menu-toggle" class="lg:hidden text-white hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-2 transition-colors duration-200">
-                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-            </button>
-
-            <!-- Search Form (Collapsible on Mobile) -->
-            <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8 animate-fade-in">
-                <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-gray-800/60 rounded-lg p-2 w-full lg:w-auto">
-                    <input 
-                        type="text" 
-                        name="query" 
-                        id="nav-search-query" 
-                        placeholder="Search anime..."
-                        class="bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-0 w-full"
-                        value="{{ search_query if search_performed else '' }}"
-                    >
-                    <button type="submit" class="p-2 rounded-md text-blue-400 hover:text-blue-300 transition-colors duration-200">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </nav>
+    {% include 'navbar.html' %}
 
     <!-- Main Container -->
     <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col justify-center">
@@ -145,7 +112,7 @@
             {% else %} {# This block now handles the airing anime homepage #}
                 {% if airing_anime %}
                     <!-- Changed grid layout for larger cards: from xl:grid-cols-6 to xl:grid-cols-5 -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8 animate-fade-in-up">
+                    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in airing_anime %}
                             <!-- Pass data via data attributes instead of onclick for robustness -->
                             <a href="javascript:void(0);" 
@@ -274,54 +241,6 @@
 
     <!-- Link to external JavaScript file -->
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
-    <script>
-        // JavaScript for mobile menu toggle
-        document.getElementById('menu-toggle').addEventListener('click', function() {
-            const navLinks = document.getElementById('nav-links');
-            navLinks.classList.toggle('hidden');
-            navLinks.classList.toggle('flex');
-            // If the menu is being opened, apply fade-in
-            if (navLinks.classList.contains('flex')) {
-                navLinks.classList.remove('animate-fade-out');
-                navLinks.classList.add('animate-fade-in');
-            } else {
-                // If the menu is being closed, apply fade-out before hiding
-                navLinks.classList.remove('animate-fade-in');
-                navLinks.classList.add('animate-fade-out');
-            }
-        });
-
-        // Close mobile menu on larger screens when resized
-        window.addEventListener('resize', function() {
-            const navLinks = document.getElementById('nav-links');
-            if (window.innerWidth >= 1024) { // Tailwind's 'lg' breakpoint
-                navLinks.classList.remove('hidden', 'flex', 'animate-fade-in', 'animate-fade-out');
-                navLinks.style.display = ''; // Remove inline style
-            } else {
-                // Ensure it's hidden if we shrink from large to small
-                if (!navLinks.classList.contains('flex')) {
-                    navLinks.classList.add('hidden');
-                }
-            }
-        });
-
-        // JavaScript for hide on scroll
-        let lastScrollTop = 0;
-        const navbar = document.getElementById('navbar');
-        const navbarHeight = navbar.offsetHeight; // Get initial height
-
-        window.addEventListener('scroll', function() {
-            let currentScroll = window.scrollY || document.documentElement.scrollTop;
-
-            if (currentScroll > lastScrollTop && currentScroll > navbarHeight) {
-                // Scrolling down and past the navbar height
-                navbar.classList.add('-translate-y-full', 'opacity-0');
-            } else if (currentScroll < lastScrollTop || currentScroll <= 0) {
-                // Scrolling up or at the very top
-                navbar.classList.remove('-translate-y-full', 'opacity-0');
-            }
-            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll; // For Mobile or negative scrolling
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
 </body>
 </html>

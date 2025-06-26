@@ -121,24 +121,3 @@ body {
 .shadow-3xl {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
-
-/* Custom scrollbar for better aesthetics */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: #2D3748; /* bg-gray-800 */
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #60A5FA; /* blue-400 */
-    border-radius: 10px;
-    border: 2px solid #2D3748;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #3B82F6; /* blue-500 */
-}
