@@ -93,7 +93,7 @@ def anime_detail(anime_session_id):
     anime_details, error_message = fetch_anime_details(anime_session_id)
     
     # Override title if it's 'N/A' from the fetch and we have it from query
-    if anime_details['title'] == 'N/A' and anime_title != 'N/A':
+    if anime_details.get('title') == 'N/A' and anime_title != 'N/A':
         anime_details['title'] = anime_title
 
     return render_template(
@@ -120,9 +120,12 @@ def episode_selection_page(anime_session_id):
     
     # Generate next/prev page URLs for the template
     # Make sure to pass anime_title to ensure continuity in navigation
-    cp = pagination_data['current_page']
-    lp = pagination_data['last_page']
+    cp = pagination_data.get('current_page', 1)
+    lp = pagination_data.get('last_page', 1)
     
+    pagination_data['next_page_url'] = None
+    pagination_data['prev_page_url'] = None
+
     if cp < lp:
         pagination_data['next_page_url'] = url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
     if cp > 1:
@@ -164,3 +167,10 @@ def proxy_image():
         return "Error loading image", 500
     
     return current_app.response_class(content, mimetype=mimetype)
+
+@main_bp.route('/bookmarks')
+def bookmarks_page():
+    """
+    Renders the bookmarks page. Bookmarks are loaded client-side from localStorage.
+    """
+    return render_template('bookmarks.html')

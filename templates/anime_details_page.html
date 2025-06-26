@@ -41,16 +41,36 @@
             </div>
             {% else %}
             <div class="bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8 animate-fade-in-up">
-                <div class="md:w-1/3 flex-shrink-0">
-                    <img 
-                        src="{{ url_for('main.proxy_image', url=anime_details.poster) }}" 
-                        alt="Poster for {{ anime_details.title }}" 
+                <div class="md:w-1/3 flex-shrink-0 relative">
+                    <img
+                        src="{{ url_for('main.proxy_image', url=anime_details.poster) }}"
+                        alt="Poster for {{ anime_details.title }}"
                         class="w-full h-auto object-cover rounded-lg shadow-lg border border-gray-600/50"
                         onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
                         loading="lazy"
                     >
+                    <!-- Bookmark Icon for Anime Details Page -->
+                    <button
+                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-full bg-gray-900/70 text-gray-400 hover:text-yellow-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                        title="Add to Bookmarks"
+                        onclick="toggleBookmark(event, {
+                            session_id: '{{ anime_session_id }}',
+                            title: '{{ anime_details.title | e }}',
+                            poster: '{{ anime_details.poster | e }}',
+                            type: '{{ anime_details.type | e }}',
+                            year: (function(aired) {
+                                const match = aired.match(/\d{4}/);
+                                return match ? match[0] : 'N/A'; // Or a default value if year not found
+                            })('{{ anime_details.aired | e }}')
+                        })"
+                        data-session-id="{{ anime_session_id }}"
+                    >
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path>
+                        </svg>
+                    </button>
                 </div>
-                
+
                 <div class="md:w-2/3 text-center md:text-left">
                     <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">{{ anime_details.title }}</h2>
                     <p class="text-gray-300 line-clamp-5 mb-6 leading-relaxed cursor-pointer" onclick="toggleText(this)">{{ anime_details.synopsis }}</p><script> function toggleText(el) { el.classList.toggle('line-clamp-5'); }</script>
@@ -76,7 +96,7 @@
                         {% endif %}
                     </div>
 
-                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_details.title) }}" 
+                    <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_details.title) }}"
                        class="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-bold text-xl rounded-lg shadow-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 btn-gradient">
                         <svg class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.132l-3.398-3.398m0 0a3.001 3.001 0 00-4.243 0l-1.414 1.414a3.001 3.001 0 000 4.243l3.398 3.398M14.752 11.132a3.001 3.001 0 000 4.243l1.414 1.414a3.001 3.001 0 004.243 0l3.398-3.398M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5M17.5 8.384L14.752 11.132M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5" />
@@ -106,7 +126,7 @@
                                 </a>
                             </h5>
                             <p class="text-gray-300 text-sm">
-                                <span class="font-medium">{{ relation.type }}</span> &middot; 
+                                <span class="font-medium">{{ relation.type }}</span> &middot;
                                 {{ relation.episodes_status }}<br>
                                 {% if relation.season != 'N/A' %}<span class="text-gray-400">{{ relation.season }}</span>{% endif %}
                             </p>
@@ -156,6 +176,21 @@
         &copy; 2024 Starlight Anime Hub. All rights reserved.
     </footer>
     <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    <!-- New Bookmark Manager Script -->
+    <script src="{{ url_for('static', filename='js/bookmark_manager.js') }}"></script>
+
+    <script>
+        // Initialize bookmark status for the anime on this details page
+        document.addEventListener('DOMContentLoaded', () => {
+            const bookmarkIcon = document.querySelector('.bookmark-icon'); // Select by class, as there's only one relevant
+            if (bookmarkIcon) {
+                const sessionId = bookmarkIcon.dataset.sessionId;
+                if (sessionId) {
+                    renderBookmarkStatus(bookmarkIcon, sessionId);
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

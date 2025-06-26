@@ -14,11 +14,14 @@
 
         <!-- Search Form (Collapsible on Mobile) -->
         <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8 animate-fade-in">
+            <a href="{{ url_for('main.bookmarks_page') }}" class="text-grey hover:text-blue-400 transition-colors duration-200 text-lg font-medium lg:ml-auto">
+                Bookmarks
+            </a>
             <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-gray-800/60 rounded-lg p-2 w-full lg:w-auto">
-                <input 
-                    type="text" 
-                    name="query" 
-                    id="nav-search-query" 
+                <input
+                    type="text"
+                    name="query"
+                    id="nav-search-query"
                     placeholder="Search anime..."
                     class="bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-0 w-full"
                     {% if search_query is defined and search_performed is defined %}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookmarks | Starlight Anime Hub</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
+
+    <!-- Navigation Bar -->
+    {% include 'navbar.html' %}
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col justify-center">
+
+        <header class="text-center mb-12 animate-fade-in-down">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
+                My Bookmarked Anime
+            </h1>
+            <p class="text-lg text-blue-300 font-light max-w-2xl mx-auto">
+                Your personal constellation of favorite anime.
+            </p>
+        </header>
+
+        <main class="flex-grow">
+            <div id="bookmark-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
+                <!-- Bookmarked anime cards will be loaded here by JavaScript -->
+            </div>
+            <div id="no-bookmarks-message" class="text-center py-20 text-gray-400 animate-fade-in hidden">
+                <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <p class="text-xl">No anime bookmarked yet!</p>
+                <p class="text-lg mt-2">Start exploring and save your favorites.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
+        &copy; 2024 Starlight Anime Hub. All rights reserved.
+    </footer>
+
+    <!-- Essential JavaScript files -->
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bookmark_manager.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bookmarkListContainer = document.getElementById('bookmark-list');
+            const noBookmarksMessage = document.getElementById('no-bookmarks-message');
+
+            /**
+             * Renders an individual anime card for the bookmarks page.
+             * @param {Object} anime The anime data to render.
+             * @returns {string} The HTML string for the anime card.
+             */
+            function renderBookmarkCard(anime) {
+                // Determine the correct poster URL, proxying if necessary
+                const posterUrl = `{{ url_for('main.proxy_image', url='') }}${anime.poster}`;
+                // Corrected: Pass anime_title to the URL for the anime_detail page
+                const detailPageUrl = `{{ url_for('main.anime_detail', anime_session_id='TEMP_SESSION_ID', anime_title='TEMP_TITLE') }}`
+                                      .replace('TEMP_SESSION_ID', anime.session_id)
+                                      .replace('TEMP_TITLE', encodeURIComponent(anime.title));
+
+                return `
+                    <a href="${detailPageUrl}"
+                       class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden
+                              transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30">
+
+                        <!-- Image container -->
+                        <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
+                            <img
+                                src="${posterUrl}"
+                                alt="Poster for ${anime.title}"
+                                class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
+                                onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
+                                loading="lazy"
+                            >
+                            <!-- Gradient overlay -->
+                            <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-gray-900/90 to-transparent z-0"></div>
+
+                            <!-- Bookmark Icon -->
+                            <button
+                                class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-full bg-gray-900/70 text-gray-400 hover:text-yellow-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                title="Add to Bookmarks"
+                                onclick="toggleBookmark(event, {
+                                    session_id: '${anime.session_id}',
+                                    title: '${anime.title.replace(/'/g, "\\'")}', // Escape single quotes for JS string
+                                    poster: '${anime.poster.replace(/'/g, "\\'")}',
+                                    type: '${anime.type.replace(/'/g, "\\'")}',
+                                    year: '${anime.year.replace(/'/g, "\\'")}'
+                                })"
+                                data-session-id="${anime.session_id}"
+                            >
+                                <!-- SVG for initial state (will be updated by renderBookmarkStatus) -->
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Text content -->
+                        <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0 transition-opacity duration-200">
+                            <h3 class="font-extrabold text-white text-lg mb-1 truncate drop-shadow" title="${anime.title}">${anime.title}</h3>
+                            <p class="text-sm text-blue-300 font-medium">${anime.type} &middot; ${anime.year}</p>
+                        </div>
+                    </a>
+                `;
+            }
+
+            // Load and display bookmarks
+            const bookmarks = getBookmarkData(); // Function from bookmark_manager.js
+            if (bookmarks.length > 0) {
+                bookmarkListContainer.innerHTML = bookmarks.map(anime => renderBookmarkCard(anime)).join('');
+                // After rendering, ensure the bookmark icons reflect their current status
+                document.querySelectorAll('.anime-card .bookmark-icon').forEach(iconElement => {
+                    const sessionId = iconElement.dataset.sessionId;
+                    if (sessionId) {
+                        renderBookmarkStatus(iconElement, sessionId);
+                    }
+                });
+            } else {
+                noBookmarksMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

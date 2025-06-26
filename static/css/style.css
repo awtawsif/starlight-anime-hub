@@ -121,3 +121,15 @@ body {
 .shadow-3xl {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
+
+/* Bookmark icon specific styles */
+/* The default state (not bookmarked) uses text-gray-400 stroke="currentColor" fill="none" */
+/* The bookmarked state uses text-yellow-400 fill="currentColor" */
+.bookmark-icon {
+    /* Add any additional styles for position, size, etc. here */
+    /* Tailwind classes are primary for appearance, but this can ensure consistency */
+    display: flex; /* To center the SVG within the button */
+    align-items: center;
+    justify-content: center;
+}
+
