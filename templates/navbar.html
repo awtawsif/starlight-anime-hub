@@ -1,7 +1,7 @@
 <nav id="navbar" class="bg-gray-900/80 backdrop-blur-md sticky top-0 z-40 shadow-xl border-b border-gray-700/50 p-4 transition-all duration-300 ease-in-out">
     <div class="container mx-auto flex justify-between items-center flex-wrap">
         <!-- Logo/Brand -->
-        <a href="{{ url_for('starlight_anime.search_page') }}" class="text-white text-3xl font-extrabold flex flex-col items-start lg:flex-row lg:items-center group">
+        <a href="{{ url_for('main.search_page') }}" class="text-white text-3xl font-extrabold flex flex-col items-start lg:flex-row lg:items-center group">
             <span class="text-xl md:text-2xl lg:text-3xl">Starlight <span class="text-blue-400">Anime</span> Hub</span>
         </a>
 
@@ -14,10 +14,10 @@
 
         <!-- Search Form (Collapsible on Mobile) -->
         <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8 animate-fade-in">
-            <a href="{{ url_for('starlight_anime.bookmarks_page') }}" class="text-grey hover:text-blue-400 transition-colors duration-200 text-lg font-medium lg:ml-auto">
+            <a href="{{ url_for('main.bookmarks_page') }}" class="text-grey hover:text-blue-400 transition-colors duration-200 text-lg font-medium lg:ml-auto">
                 Bookmarks
             </a>
-            <form method="post" action="{{ url_for('starlight_anime.search_page') }}" class="flex items-center gap-2 bg-gray-800/60 rounded-lg p-2 w-full lg:w-auto">
+            <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-gray-800/60 rounded-lg p-2 w-full lg:w-auto">
                 <input
                     type="text"
                     name="query"
