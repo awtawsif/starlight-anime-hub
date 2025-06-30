@@ -56,14 +56,14 @@
                 {% if results %}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
                         {% for item in results %}
-                            <a href="{{ url_for('main.anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
+                            <a href="{{ url_for('starlight_anime.anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
                                class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden 
                                       transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30">
                                 
                                 <!-- Image container to control scaling and blend with text area -->
                                 <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
                                     <img 
-                                        src="{{ url_for('main.proxy_image', url=item.poster) }}" 
+                                        src="{{ url_for('starlight_anime.proxy_image', url=item.poster) }}" 
                                         alt="Poster for {{ item.title }}" 
                                         class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
                                         onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
@@ -133,7 +133,7 @@
                                 <!-- Image container with overlay -->
                                 <div class="relative w-full aspect-[6/3] overflow-hidden flex-shrink-0">
                                     <img 
-                                        src="{{ url_for('main.proxy_image', url=item.snapshot) }}" 
+                                        src="{{ url_for('starlight_anime.proxy_image', url=item.snapshot) }}" 
                                         alt="Snapshot for {{ item.anime_title }} Episode {{ item.episode }}" 
                                         class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
                                         onerror="this.onerror=null;this.src='https://placehold.co/300x168/1a202c/ffffff?text=No+Snapshot+Available&font=inter';"
@@ -167,14 +167,14 @@
 
                         {# First Page Link #}
                         {% if start_page > 1 %}
-                            <a href="{{ url_for('main.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                            <a href="{{ url_for('starlight_anime.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
                             {% if start_page > 2 %}
                                 <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
                         {% endif %}
 
                         {% for p in range(start_page, end_page + 1) %}
-                            <a href="{{ url_for('main.search_page', page=p) }}" class="mb-2 px-4 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105"> {# Changed px-5 to px-4 here #}
+                            <a href="{{ url_for('starlight_anime.search_page', page=p) }}" class="mb-2 px-4 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105"> {# Changed px-5 to px-4 here #}
                                 {{ p }}
                             </a>
                         {% endfor %}
@@ -184,7 +184,7 @@
                             {% if end_page < last_page - 1 %}
                                 <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
-                            <a href="{{ url_for('main.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a> {# Changed px-5 to px-4 here #}
+                            <a href="{{ url_for('starlight_anime.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a> {# Changed px-5 to px-4 here #}
                         {% endif %}
                     </div>
 

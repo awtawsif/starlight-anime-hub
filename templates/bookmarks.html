@@ -65,9 +65,9 @@
              */
             function renderBookmarkCard(anime) {
                 // Determine the correct poster URL, proxying if necessary
-                const posterUrl = `{{ url_for('main.proxy_image', url='') }}${anime.poster}`;
+                const posterUrl = `{{ url_for('starlight_anime.proxy_image', url='') }}${anime.poster}`;
                 // Corrected: Pass anime_title to the URL for the anime_detail page
-                const detailPageUrl = `{{ url_for('main.anime_detail', anime_session_id='TEMP_SESSION_ID', anime_title='TEMP_TITLE') }}`
+                const detailPageUrl = `{{ url_for('starlight_anime.anime_detail', anime_session_id='TEMP_SESSION_ID', anime_title='TEMP_TITLE') }}`
                                       .replace('TEMP_SESSION_ID', anime.session_id)
                                       .replace('TEMP_TITLE', encodeURIComponent(anime.title));
 
