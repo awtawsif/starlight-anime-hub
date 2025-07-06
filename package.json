@@ -1,0 +1,26 @@
+{
+  "name": "starlight-anime-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awtawsif/starlight-anime-hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/awtawsif/starlight-anime-hub/issues"
+  },
+  "homepage": "https://github.com/awtawsif/starlight-anime-hub#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  }
+}
