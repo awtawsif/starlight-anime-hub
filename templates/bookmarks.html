@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Bookmarks | Starlight Anime Hub</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col">
+<body class="bg-black text-green-400 font-mono">
 
     <!-- Navigation Bar -->
     {% include 'navbar.html' %}
@@ -20,10 +20,10 @@
     <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col justify-center">
 
         <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
-                My Bookmarked Anime
+            <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+                MY BOOKMARKED ANIME
             </h1>
-            <p class="text-lg text-blue-300 font-light max-w-2xl mx-auto">
+            <p class="text-lg text-green-300 font-light max-w-2xl mx-auto">
                 Your personal collection of favorite anime.
             </p>
         </header>
@@ -32,8 +32,8 @@
             <div id="bookmark-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                 <!-- Bookmarked anime cards will be loaded here by JavaScript -->
             </div>
-            <div id="no-bookmarks-message" class="text-center py-20 text-gray-400 hidden">
-                <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div id="no-bookmarks-message" class="text-center py-20 text-green-400 hidden">
+                <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
                 <p class="text-xl">No anime bookmarked yet!</p>

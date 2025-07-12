@@ -209,7 +209,7 @@
      * @param {Event} event The click event.
      */
     function handleEpisodeCardClick(event) {
-        const clickedElement = event.target.closest('.anime-card[data-anime-session-id]');
+        const clickedElement = event.target.closest('.anime-card[data-anime-session-id], .episode-card[data-anime-session-id]');
 
         if (clickedElement) {
             const animeSessionId = clickedElement.dataset.animeSessionId;
@@ -229,7 +229,8 @@
                 return;
             }
 
-            if (episodeOptionsModal && episodeOptionsModalTitle && viewDetailsBtn && downloadEpisodeBtn) {
+            // If the episode options modal exists, show it. Otherwise, directly show the downloads.
+            if (episodeOptionsModal) {
                 episodeOptionsModalTitle.textContent = animeTitle + ' - Episode ' + episodeNumber;
                 viewDetailsBtn.href = `/anime/${animeSessionId}?anime_title=${encodeURIComponent(animeTitle)}`;
                 downloadEpisodeBtn.onclick = function() {
@@ -237,6 +238,8 @@
                     showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
                 };
                 openModal(episodeOptionsModal);
+            } else {
+                showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
             }
         }
     }
@@ -248,12 +251,13 @@
      * @param {string} episodeTitle A display title for the episode.
      */
     async function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
-        if (!downloadModal || !downloadModalTitle || !downloadLinksContainer || !loadingMessage || !noLinksFoundMessage || !errorMessage) {
+        const modalTitleElement = downloadModalTitle || document.getElementById('modalTitle');
+        if (!downloadModal || !modalTitleElement || !downloadLinksContainer || !loadingMessage || !noLinksFoundMessage || !errorMessage) {
             console.error("Download modal elements not found.");
             return;
         }
 
-        downloadModalTitle.textContent = episodeTitle + ' - Download Options';
+        modalTitleElement.textContent = episodeTitle + ' - Download Options';
         loadingMessage.classList.remove('hidden');
         noLinksFoundMessage.classList.add('hidden');
         errorMessage.classList.add('hidden');

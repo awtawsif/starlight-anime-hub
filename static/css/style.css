@@ -2,57 +2,52 @@
 
 /* General Body Styles & Typography */
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'VT323', monospace; /* Retro pixel font */
     overflow-x: hidden; /* Prevent horizontal scroll */
+    background-color: #1a1a1a; /* Dark retro background */
+    color: #00ff00; /* Green retro text */
 }
 
-/* No animations, no complex transitions. Simple hover effects. */
+/* Blocky and simple cards */
 .anime-card, .episode-card {
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.1s ease-out;
-    position: relative;
-    overflow: hidden;
-    border-radius: 0.75rem; /* Tailwind's rounded-xl */
+    border: 2px solid #00ff00; /* Green border */
+    border-radius: 0; /* Sharp corners */
+    background-color: #000; /* Black background */
 }
 
 .anime-card:hover, .episode-card:hover {
-    transform: translateY(-2px); /* Subtle lift on hover */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Simple shadow */
-    border-color: #60A5FA; /* Light blue border on hover */
+    background-color: #111; /* Slight hover effect */
 }
 
-/* Button Styling - Minimal */
+/* Simple blocky buttons */
 .btn-primary {
-    background-color: #3B82F6; /* Blue */
-    transition: background-color 0.1s ease-out;
+    background-color: #00ff00; /* Green button */
+    color: #000; /* Black text */
+    border: 2px solid #00ff00;
+    border-radius: 0;
+    text-transform: uppercase;
 }
 
 .btn-primary:hover {
-    background-color: #2563EB; /* Darker blue */
+    background-color: #00cc00; /* Darker green on hover */
 }
 
-/* Modal Specific Styles - Instant appearance */
+/* Modal styles */
 .modal-overlay {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
-}
-
-.modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
 .modal-content {
-    /* No transform or complex transitions for modal content */
-    transition: none;
+    border: 2px solid #00ff00;
+    border-radius: 0;
+    background-color: #000;
 }
 
-/* Shadow for the modal content - kept for visual separation */
 .shadow-3xl {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1);
+    box-shadow: none; /* No shadow */
 }
 
-/* Bookmark icon specific styles - keep as is for functionality */
+/* Bookmark icon */
 .bookmark-icon {
     display: flex;
     align-items: center;

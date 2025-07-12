@@ -4,15 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Starlight Anime Hub</title>
-    <!-- Google Fonts: Inter -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col">
+<body class="bg-black text-green-400 font-mono">
 
     <!-- Navigation Bar -->
     {% include 'navbar.html' %}
@@ -23,21 +21,21 @@
         <!-- Initial Main Content Header for Airing or Search Results -->
         <header class="text-center mb-12">
             {% if search_performed %}
-                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
-                    Search Results
+                <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+                    SEARCH RESULTS
                 </h1>
-                <p class="text-lg text-blue-300 font-light max-w-2xl mx-auto">
+                <p class="text-lg text-green-300 font-light max-w-2xl mx-auto">
                     {% if results %}
-                        Showing {{ results|length }} results for "<span class="text-blue-400">{{ search_query }}</span>"
+                        Showing {{ results|length }} results for "<span class="text-green-300">{{ search_query }}</span>"
                     {% else %}
-                        No results found for "<span class="text-400">{{ search_query }}</span>"
+                        No results found for "<span class="text-green-300">{{ search_query }}</span>"
                     {% endif %}
                 </p>
             {% else %}
-                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
-                    Currently Airing Anime
+                <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+                    CURRENTLY AIRING ANIME
                 </h1>
-                <p class="text-lg text-blue-300 mb-4 font-light max-w-2xl mx-auto">
+                <p class="text-lg text-green-300 mb-4 font-light max-w-2xl mx-auto">
                     Explore the latest releases.
                 </p>
             {% endif %}
@@ -46,7 +44,7 @@
         <!-- Main Content Section -->
         <main class="flex-grow">
             {% if error_message %}
-                 <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl text-white shadow-xl">
+                 <div class="text-center py-12 bg-red-900 border border-red-700 text-white">
                     <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
                     <p class="text-red-200 text-md">{{ error_message }}</p>
                 </div>
@@ -55,21 +53,20 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                         {% for item in results %}
                             <a href="{{ url_for('main.anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
-                               class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden 
-                                      transform hover:scale-100 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30">
+                               class="anime-card block bg-black border-2 border-green-400">
                                 
                                 <!-- Image container -->
                                 <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
                                     <img 
                                         src="{{ url_for('main.proxy_image', url=item.poster) }}" 
                                         alt="Poster for {{ item.title }}" 
-                                        class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 group-hover:scale-100 group-hover:brightness-100"
-                                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
+                                        class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/00ff00?text=No+Image+Available&font=vt323';"
                                         loading="lazy"
                                     >
                                     {% if item.score %}
                                     <div class="absolute top-3 right-3 z-20">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-yellow-400/90 text-gray-900 font-bold text-xs shadow-md ring-2 ring-yellow-300/60">
+                                        <span class="inline-flex items-center px-2.5 py-1 bg-yellow-400 text-black font-bold text-xs border-2 border-yellow-400">
                                             <svg class="w-4 h-4 mr-1 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.538 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.538-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z"></path></svg>
                                             {{ "%.2f" | format(item.score) }}
                                         </span>
@@ -77,7 +74,7 @@
                                     {% endif %}
                                     <!-- Bookmark Icon for Search Results -->
                                     <button 
-                                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-full bg-gray-900/70 text-gray-400 hover:text-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 bg-black text-green-400 border-2 border-green-400"
                                         title="Add to Bookmarks"
                                         data-session-id="{{ item.session }}"
                                         data-anime-title="{{ item.title | e }}"
@@ -92,16 +89,16 @@
                                 </div>
                                 
                                 <!-- Text content -->
-                                <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0">
-                                    <h3 class="font-extrabold text-white text-lg mb-1 truncate drop-shadow" title="{{ item.title }}">{{ item.title }}</h3>
-                                    <p class="text-sm text-blue-300 font-medium">{{ item.type }} &middot; {{ item.year }}</p>
+                                <div class="p-4 text-center bg-black">
+                                    <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="{{ item.title }}">{{ item.title }}</h3>
+                                    <p class="text-sm text-green-300 font-medium">{{ item.type }} &middot; {{ item.year }}</p>
                                 </div>
                             </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-20 text-gray-400">
-                        <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="text-center py-20 text-green-400">
+                        <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                         </svg>
                         <p class="text-xl">No results found for "{{ search_query }}".</p>
@@ -113,8 +110,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
                         {% for item in airing_anime %}
                             <a href="javascript:void(0);" 
-                               class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden 
-                                      transform hover:scale-100 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30"
+                               class="anime-card block bg-black border-2 border-green-400"
                                data-anime-session-id="{{ item.anime_session }}"
                                data-anime-title="{{ item.anime_title }}"
                                data-episode-session-id="{{ item.session }}"
@@ -125,16 +121,16 @@
                                     <img 
                                         src="{{ url_for('main.proxy_image', url=item.snapshot) }}" 
                                         alt="Snapshot for {{ item.anime_title }} Episode {{ item.episode }}" 
-                                        class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 group-hover:scale-100 group-hover:brightness-100"
-                                        onerror="this.onerror=null;this.src='https://placehold.co/300x168/1a202c/ffffff?text=No+Snapshot+Available&font=inter';"
+                                        class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                                        onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
                                         loading="lazy"
                                     >
                                 </div>
                                 
                                 <!-- Text content -->
-                                <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0">
-                                    <h3 class="font-bold text-white text-lg mb-1 truncate" title="{{ item.anime_title }}">{{ item.anime_title }}</h3>
-                                    <p class="text-sm text-blue-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }}</p>
+                                <div class="p-4 text-center bg-black">
+                                    <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="{{ item.anime_title }}">{{ item.anime_title }}</h3>
+                                    <p class="text-sm text-green-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }}</p>
                                     <p class="text-xs text-gray-400 mt-1">Aired: {{ item.created_at.split(' ')[0] }}</p>
                                 </div>
                             </a>
@@ -157,14 +153,14 @@
 
                         {# First Page Link #}
                         {% if start_page > 1 %}
-                            <a href="{{ url_for('main.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-colors duration-100 border border-gray-600/50">1</a>
+                            <a href="{{ url_for('main.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-black border-2 border-green-400 text-green-400 font-semibold">1</a>
                             {% if start_page > 2 %}
                                 <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
                         {% endif %}
 
                         {% for p in range(start_page, end_page + 1) %}
-                            <a href="{{ url_for('main.search_page', page=p) }}" class="mb-2 px-4 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-colors duration-100">
+                            <a href="{{ url_for('main.search_page', page=p) }}" class="mb-2 px-4 py-3 {% if p == current_page %} bg-green-500 text-black font-bold {% else %} bg-black border-2 border-green-400 text-green-400 font-semibold {% endif %}">
                                 {{ p }}
                             </a>
                         {% endfor %}
@@ -174,13 +170,13 @@
                             {% if end_page < last_page - 1 %}
                                 <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                             {% endif %}
-                            <a href="{{ url_for('main.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-colors duration-100 border border-gray-600/50">{{ last_page }}</a>
+                            <a href="{{ url_for('main.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold">{{ last_page }}</a>
                         {% endif %}
                     </div>
 
                 {% else %}
-                    <div class="text-center py-20 text-gray-400">
-                        <svg class="mx-auto h-20 w-20 text-blue-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="text-center py-20 text-green-400">
+                        <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                         </svg>
                         <p class="text-xl">No currently airing anime to display.</p>
@@ -192,19 +188,19 @@
     </div>
 
     <!-- Episode Options Modal -->
-    <div id="episodeOptionsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 pl-12 w-11/12 max-w-sm mx-auto relative border border-gray-700/50 modal-content">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none">
+    <div id="episodeOptionsModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
+        <div class="bg-black border-2 border-green-400 p-8 pr-12 pl-12 w-11/12 max-w-sm mx-auto relative modal-content">
+            <button class="absolute top-4 right-4 text-green-400 hover:text-white focus:outline-none">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <h3 id="episodeOptionsModalTitle" class="text-2xl font-bold text-white mb-6 text-center"></h3>
+            <h3 id="episodeOptionsModalTitle" class="text-2xl font-bold text-green-400 mb-6 text-center"></h3>
             <div class="space-y-4">
-                <a id="viewDetailsBtn" class="block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 shadow-md btn-primary cursor-pointer">
+                <a id="viewDetailsBtn" class="block px-5 py-3 bg-green-500 text-black font-semibold text-center border-2 border-green-500 btn-primary cursor-pointer">
                     View Anime Details
                 </a>
-                <button id="downloadEpisodeBtn" class="block w-full px-5 py-3 bg-indigo-600 text-white font-semibold rounded-lg text-center hover:bg-indigo-700 shadow-md btn-primary cursor-pointer">
+                <button id="downloadEpisodeBtn" class="block w-full px-5 py-3 bg-indigo-500 text-black font-semibold text-center border-2 border-indigo-500 btn-primary cursor-pointer">
                     Download Episode
                 </button>
             </div>
@@ -212,16 +208,16 @@
     </div>
 
     <!-- Download Links Modal -->
-    <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 w-11/12 max-w-md mx-auto relative border border-gray-700/50 modal-content">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none">
+    <div id="downloadModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
+        <div class="bg-black border-2 border-green-400 p-8 pr-12 w-11/12 max-w-md mx-auto relative modal-content">
+            <button class="absolute top-4 right-4 text-green-400 hover:text-white focus:outline-none">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <h3 id="downloadModalTitle" class="text-2xl font-bold text-white mb-6 text-center"></h3>
+            <h3 id="downloadModalTitle" class="text-2xl font-bold text-green-400 mb-6 text-center"></h3>
             <div id="downloadLinks" class="space-y-4">
-                <p id="loadingMessage" class="text-center text-blue-300 text-lg">Summoning download links...</p>
+                <p id="loadingMessage" class="text-center text-green-300 text-lg">Summoning download links...</p>
                 <div id="noLinksFound" class="text-center text-gray-400 hidden">No download links found for this episode.</div>
             </div>
             <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
