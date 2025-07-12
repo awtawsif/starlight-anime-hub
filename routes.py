@@ -6,6 +6,7 @@ It uses functions from api_handlers to fetch and process data.
 """
 
 from flask import Blueprint, request, render_template, jsonify, url_for, current_app
+from extensions import cache
 from api_handlers import (
     fetch_anime_search_results,
     fetch_anime_details,
@@ -23,6 +24,7 @@ main_bp = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
 
 @main_bp.route('/', methods=['GET', 'POST'])
+@cache.cached(timeout=300, query_string=True)
 def search_page():
     """
     Handles displaying the search page and processing API search requests,
@@ -80,6 +82,7 @@ def search_page():
     )
 
 @main_bp.route('/anime/<string:anime_session_id>', methods=['GET'])
+@cache.cached(timeout=3600)
 def anime_detail(anime_session_id):
     """
     Fetches and displays full details for a given anime session ID by scraping
@@ -104,6 +107,7 @@ def anime_detail(anime_session_id):
     )
 
 @main_bp.route('/episodes/<string:anime_session_id>', methods=['GET'])
+@cache.cached(timeout=3600, query_string=True)
 def episode_selection_page(anime_session_id):
     """
     Fetches and displays episodes for a given anime session ID with pagination.
@@ -141,6 +145,7 @@ def episode_selection_page(anime_session_id):
     )
 
 @main_bp.route('/api/episode-downloads/<string:anime_session_id>/<string:episode_session_id>', methods=['GET'])
+@cache.cached(timeout=900)
 def get_episode_downloads(anime_session_id, episode_session_id):
     """
     Fetches download links for a specific episode using the API handler.
@@ -152,6 +157,7 @@ def get_episode_downloads(anime_session_id, episode_session_id):
     return jsonify({'downloads': downloads})
 
 @main_bp.route('/proxy-image')
+@cache.cached(timeout=900, query_string=True)
 def proxy_image():
     """
     Proxies images from the animepahe.ru domain to bypass CORS restrictions.

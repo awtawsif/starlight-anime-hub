@@ -112,14 +112,14 @@
      */
     function renderBookmarkStatus(bookmarkIcon, sessionId) {
         if (isBookmarked(sessionId)) {
-            bookmarkIcon.classList.remove('text-gray-400', 'hover:text-yellow-300');
-            bookmarkIcon.classList.add('text-yellow-400');
-            bookmarkIcon.innerHTML = `<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.538 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.538-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z"></path></svg>`;
+            bookmarkIcon.classList.remove('text-gray-400', 'hover:text-green-300');
+            bookmarkIcon.classList.add('text-green-400');
+            bookmarkIcon.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>`;
             bookmarkIcon.title = "Remove from Bookmarks";
         } else {
-            bookmarkIcon.classList.remove('text-yellow-400');
-            bookmarkIcon.classList.add('text-gray-400', 'hover:text-yellow-300');
-            bookmarkIcon.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path></svg>`;
+            bookmarkIcon.classList.remove('text-green-400');
+            bookmarkIcon.classList.add('text-gray-400', 'hover:text-green-300');
+            bookmarkIcon.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>`;
             bookmarkIcon.title = "Add to Bookmarks";
         }
     }
@@ -310,21 +310,21 @@
 
         return `
             <a href="${detailPageUrl}"
-               class="anime-card block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden
-                      transform hover:scale-100 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30">
+               class="anime-card block bg-black border-2 border-green-400 rounded-none shadow-none overflow-hidden
+                      transform hover:scale-100 hover:shadow-none hover:border-green-400 group relative flex flex-col h-full">
 
                 <!-- Image container -->
                 <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
                     <img
                         src="${proxyImageUrl}"
                         alt="Poster for ${anime.title}"
-                        class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 group-hover:scale-100 group-hover:brightness-100"
+                        class="absolute inset-0 w-full h-full object-cover rounded-none border-b-2 border-green-400 shadow-none group-hover:scale-100 group-hover:brightness-100"
                         onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter'; console.error('Image failed to load:', this.src);"
                         loading="lazy"
                     >
                     <!-- Bookmark Icon -->
                     <button
-                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-full bg-gray-900/70 text-gray-400 hover:text-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-none bg-black border-2 border-green-400 text-green-400 hover:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black"
                         title="Add to Bookmarks"
                         data-session-id="${anime.session_id}"
                         data-anime-title="${anime.title.replace(/"/g, '&quot;')}"
@@ -334,15 +334,15 @@
                     >
                         <!-- SVG for initial state (will be updated by renderBookmarkStatus) -->
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                     </button>
                 </div>
 
                 <!-- Text content -->
-                <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0">
-                    <h3 class="font-extrabold text-white text-lg mb-1 truncate drop-shadow" title="${anime.title}">${anime.title}</h3>
-                    <p class="text-sm text-blue-300 font-medium">${anime.type} &middot; ${anime.year || 'N/A'}</p>
+                <div class="p-4 text-center bg-black flex-grow relative z-0">
+                    <h3 class="font-extrabold text-green-400 text-lg mb-1 truncate" title="${anime.title}">${anime.title}</h3>
+                    <p class="text-sm text-green-300 font-medium">${anime.type} &middot; ${anime.year || 'N/A'}</p>
                 </div>
             </a>
         `;
@@ -365,8 +365,14 @@
         if (bookmarks.length > 0) {
             bookmarkListContainer.innerHTML = bookmarks.map(anime => renderBookmarkCard(anime)).join('');
             noBookmarksMessage.classList.add('hidden');
+
             // After rendering, ensure the bookmark icons reflect their current status
-            // This is handled by the global DOMContentLoaded listener for .bookmark-icon
+            bookmarkListContainer.querySelectorAll('.bookmark-icon').forEach(iconElement => {
+                const sessionId = iconElement.dataset.sessionId;
+                if (sessionId) {
+                    renderBookmarkStatus(iconElement, sessionId);
+                }
+            });
         } else {
             bookmarkListContainer.innerHTML = ''; // Clear any previous content
             noBookmarksMessage.classList.remove('hidden');

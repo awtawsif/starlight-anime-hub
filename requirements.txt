@@ -1,5 +1,6 @@
 Flask
+Flask-Caching
+gunicorn
 requests
 beautifulsoup4
 lxml
-gunicorn
