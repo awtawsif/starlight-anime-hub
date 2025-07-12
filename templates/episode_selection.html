@@ -11,46 +11,50 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 </head>
 
-<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
+<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col">
 
     <!-- Navigation Bar -->
     {% include 'navbar.html' %}
 
     <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col">
 
-        <header class="text-center mb-12 animate-fade-in-down">
+        <header class="text-center mb-12">
             <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
                 Episodes for: <span class="text-blue-400"><a href="{{ url_for('main.anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}">{{ anime_title }}</a></span>
             </h1>
             <p class="text-lg text-blue-300 font-light mb-4 max-w-xl mx-auto">
-                Select an episode to embark on your downloading adventure.
+                Select an episode for download options.
             </p>
         </header>
 
         <main class="flex-grow">
             {% if error_message %}
-            <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
+            <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl text-white shadow-xl">
                 <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
                 <p class="text-red-200 text-md">{{ error_message }}</p>
             </div>
             {% elif episodes %}
-            <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8 animate-fade-in-up">
+            <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                 {% for episode in episodes %}
-                <a href="javascript:void(0);" onclick="showDownloads('{{ anime_session_id }}', '{{ episode.session }}', 'Episode {{ episode.episode }}')" 
+                <a href="javascript:void(0);" 
                    class="episode-card group block bg-gray-800/40 bg-clip-padding backdrop-blur-md border border-gray-700/40 rounded-2xl shadow-2xl overflow-hidden 
-                          transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40 hover:border-blue-400/60 relative flex flex-col h-full ring-1 ring-gray-700/30 cursor-pointer">
-                    <!-- Image container with overlay -->
+                          transform hover:scale-100 hover:shadow-blue-500/40 hover:border-blue-400/60 group relative flex flex-col h-full ring-1 ring-gray-700/30 cursor-pointer"
+                   data-anime-session-id="{{ anime_session_id }}"
+                   data-anime-title="{{ anime_title }}"
+                   data-episode-session-id="{{ episode.session }}"
+                   data-episode-number="{{ episode.episode }}"
+                > 
+                    <!-- Image container -->
                     <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
                         <img 
                             src="{{ url_for('main.proxy_image', url=episode.snapshot) }}" 
                             alt="Snapshot for Episode {{ episode.episode }}" 
-                            class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
+                            class="absolute inset-0 w-full h-full object-cover rounded-t-2xl border-b-4 border-blue-700/30 shadow-lg shadow-blue-900/30 group-hover:scale-100 group-hover:brightness-100"
                             onerror="this.onerror=null;this.src='https://placehold.co/300x168/1a202c/ffffff?text=No+Snapshot+Available&font=inter';"
                             loading="lazy"
                         >
-                        <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-gray-900/90 to-transparent z-0"></div>
                     </div>
-                    <!-- Initial text, visible when not hovered -->
+                    <!-- Text content -->
                     <div class="p-4 text-center bg-gray-900/80 flex-grow relative z-0">
                         <h3 class="font-bold text-white text-lg mb-1 truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
                         {% if episode.title %}
@@ -63,14 +67,14 @@
             </div>
 
             {% if pagination.last_page > 1 %}
-                <div class="flex justify-center mt-12 space-x-3 animate-fade-in-up flex-wrap">
+                <div class="flex justify-center mt-12 space-x-3 flex-wrap">
                     {% set current_page = pagination.current_page %}
                     {% set last_page = pagination.last_page %}
                     {% set anime_session_id = anime_session_id %}
                     {% set anime_title_for_url = anime_title %}
 
                     {# Page Numbers #}
-                    {% set num_visible_pages = 4 %} {# Max number of page buttons to show (excluding First/Last) #}
+                    {% set num_visible_pages = 4 %}
                     {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
                     {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
 
@@ -81,7 +85,7 @@
 
                     {# First Page Link #}
                     {% if start_page > 1 %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">1</a>
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-colors duration-100 border border-gray-600/50">1</a>
                         {% if start_page > 2 %}
                             <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                         {% endif %}
@@ -89,7 +93,7 @@
 
                     {# Page numbers #}
                     {% for p in range(start_page, end_page + 1) %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-all duration-300 transform hover:scale-105">
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 rounded-lg {% if p == current_page %} bg-blue-600 text-white font-bold shadow-lg {% else %} bg-gray-700/50 text-white font-semibold hover:bg-gray-600/70 border border-gray-600/50 {% endif %} transition-colors duration-100">
                             {{ p }}
                         </a>
                     {% endfor %}
@@ -99,45 +103,42 @@
                         {% if end_page < last_page - 1 %}
                             <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                         {% endif %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-all duration-300 transform hover:scale-105 border border-gray-600/50">{{ last_page }}</a>
+                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/70 transition-colors duration-100 border border-gray-600/50">{{ last_page }}</a>
                     {% endif %}
                 </div>
             {% endif %}
 
             {% else %}
-            <div class="text-center py-16 text-gray-400 animate-fade-in">
+            <div class="text-center py-16 text-gray-400">
                 <svg class="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
                 </svg>
                 <h3 class="mt-2 text-xl font-medium text-white">No episodes detected</h3>
-                <p class="mt-2 text-md text-gray-400">The cosmic database found no episodes for this anime.</p>
+                <p class="mt-2 text-md text-gray-400">The database found no episodes for this anime.</p>
             </div>
             {% endif %}
         </main>
     </div>
 
-    <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-fade">
-        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 w-11/12 max-w-md mx-auto relative transform scale-95 modal-content-slide border border-gray-700/50">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
+    <!-- Download Links Modal -->
+    <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
+        <div class="bg-gray-800 rounded-2xl shadow-3xl p-8 pr-12 w-11/12 max-w-md mx-auto relative border border-gray-700/50 modal-content">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
             <h3 id="modalTitle" class="text-2xl font-bold text-white mb-6 text-center"></h3>
             <div id="downloadLinks" class="space-y-4">
-                <p id="loadingMessage" class="text-center text-blue-300 text-lg animate-pulse">Summoning download links from the stars...</p>
-                <div id="noLinksFound" class="text-center text-gray-400 hidden">No download links found for this episode. Perhaps they're in another galaxy.</div>
+                <p id="loadingMessage" class="text-center text-blue-300 text-lg">Summoning download links...</p>
+                <div id="noLinksFound" class="text-center text-gray-400 hidden">No download links found for this episode.</div>
             </div>
             <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
         </div>
     </div>
 
-    <!-- Link to external JavaScript file -->
-    <script src="{{ url_for('static', filename='js/episode_selection.js') }}"></script>
-    <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
-        &copy; 2024 Starlight Anime Hub. All rights reserved.
-    </footer>
-    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    <!-- Consolidated JavaScript file -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 
 </html>

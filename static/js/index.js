@@ -27,7 +27,6 @@ function showEpisodeOptionsFromCard(clickedElement) {
         console.error("Missing data for episode options. Cannot open modal.", {
             animeSessionId, animeTitle, episodeSessionId, episodeNumber
         });
-        // Optionally, show a user-friendly message or redirect to a fallback page
         return;
     }
 
@@ -47,7 +46,6 @@ function showEpisodeOptions(animeSessionId, animeTitle, episodeSessionId, episod
     episodeOptionsModalTitle.textContent = animeTitle + ' - Episode ' + episodeNumber;
 
     // Construct the URL entirely in JavaScript using template literals for clarity and correctness
-    // Assumes the Flask route for anime_detail is /anime/<anime_session_id>?anime_title=<anime_title>
     viewDetailsBtn.href = `/anime/${animeSessionId}?anime_title=${encodeURIComponent(animeTitle)}`;
 
     // Set the onclick for 'Download Episode' button
@@ -57,7 +55,7 @@ function showEpisodeOptions(animeSessionId, animeTitle, episodeSessionId, episod
         showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
     };
 
-    // Show options modal with animations
+    // Show options modal
     episodeOptionsModal.classList.remove('hidden');
     episodeOptionsModal.classList.add('active');
 }
@@ -67,10 +65,11 @@ function showEpisodeOptions(animeSessionId, animeTitle, episodeSessionId, episod
  */
 function closeEpisodeOptionsModal() {
     episodeOptionsModal.classList.remove('active');
-    episodeOptionsModal.addEventListener('transitionend', function handler() {
+    // Use a short timeout to ensure the 'active' class is removed before 'hidden' is added
+    // This allows the CSS transition (if any remains) to play out, even if it's very fast.
+    setTimeout(() => {
         episodeOptionsModal.classList.add('hidden');
-        episodeOptionsModal.removeEventListener('transitionend', handler);
-    }, { once: true });
+    }, 10); // A very short delay
 }
 
 // Close options modal when clicking outside of it
@@ -96,9 +95,9 @@ function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
     downloadLinksContainer.innerHTML = '';
     downloadLinksContainer.appendChild(loadingMessage); // Re-add loading message for current fetch
 
-    // Show modal with animations
+    // Show modal
     downloadModal.classList.remove('hidden');
-    downloadModal.classList.add('active'); // Trigger CSS animation
+    downloadModal.classList.add('active');
 
     // Fetch URL is relative, assuming Flask serves this endpoint
     fetch(`/api/episode-downloads/${animeSessionId}/${episodeSessionId}`)
@@ -117,7 +116,8 @@ function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
                     a.textContent = link.text;
                     a.target = '_blank';
                     a.rel = 'noopener noreferrer';
-                    a.className = 'block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 transition-colors duration-200 shadow-md transform hover:scale-[1.02] active:scale-95 download-btn-gradient';
+                    // Removed transform and active classes for simpler button style
+                    a.className = 'block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 transition-colors duration-150 shadow-md download-btn-gradient';
                     downloadLinksContainer.appendChild(a);
                 });
             } else {
@@ -136,9 +136,9 @@ function showDownloads(animeSessionId, episodeSessionId, episodeTitle) {
  * Closes the Download Links Modal.
  */
 function closeDownloadModal() {
-    // Trigger CSS animation for closing
     downloadModal.classList.remove('active');
-    downloadModal.addEventListener('transitionend', function handler() {
+    // Use a short timeout to ensure the 'active' class is removed before 'hidden' is added
+    setTimeout(() => {
         downloadModal.classList.add('hidden');
         // Clear links and messages when closing the modal
         downloadLinksContainer.innerHTML = '';
@@ -146,8 +146,7 @@ function closeDownloadModal() {
         loadingMessage.classList.remove('hidden');
         noLinksFoundMessage.classList.add('hidden');
         errorMessage.classList.add('hidden');
-        downloadModal.removeEventListener('transitionend', handler); // Clean up listener
-    }, { once: true });
+    }, 10); // A very short delay
 }
 
 // Close download modal when clicking outside of it

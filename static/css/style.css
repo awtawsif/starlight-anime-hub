@@ -1,136 +1,60 @@
 @import "tailwindcss";
+
 /* General Body Styles & Typography */
 body {
     font-family: 'Inter', sans-serif;
-    /* Removed fixed background color for gradient */
-    overflow-x: hidden; /* Prevent horizontal scroll on animations */
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
-/* Base Animations */
-.page-enter-active {
-    animation: fadeIn 0.6s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in-down {
-    animation: fadeInDown 0.8s ease-out forwards;
-    opacity: 0; /* Start invisible */
-}
-
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
-    opacity: 0; /* Start invisible */
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.8s ease-out forwards;
-    opacity: 0; /* Start invisible */
-}
-
-
-/* Card Transitions & Hover Effects */
+/* No animations, no complex transitions. Simple hover effects. */
 .anime-card, .episode-card {
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.1s ease-out;
     position: relative;
     overflow: hidden;
     border-radius: 0.75rem; /* Tailwind's rounded-xl */
 }
 
-.anime-card::before, .episode-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); /* Subtle gradient overlay */
-    z-index: 1;
+.anime-card:hover, .episode-card:hover {
+    transform: translateY(-2px); /* Subtle lift on hover */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Simple shadow */
+    border-color: #60A5FA; /* Light blue border on hover */
+}
+
+/* Button Styling - Minimal */
+.btn-primary {
+    background-color: #3B82F6; /* Blue */
+    transition: background-color 0.1s ease-out;
+}
+
+.btn-primary:hover {
+    background-color: #2563EB; /* Darker blue */
+}
+
+/* Modal Specific Styles - Instant appearance */
+.modal-overlay {
     opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    visibility: hidden;
+    transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
 }
 
-.anime-card:hover::before, .episode-card:hover::before {
-    opacity: 1;
-}
-
-.anime-card img, .episode-card img {
-    z-index: 2;
-    position: relative;
-}
-
-
-/* Button Styling */
-.btn-gradient {
-    background-image: linear-gradient(to right, #6366F1, #8B5CF6, #EC4899); /* Purple-blue-pink */
-    background-size: 200% auto;
-    transition: background-position 0.4s ease-out;
-}
-
-.btn-gradient:hover {
-    background-position: right center; /* Shift gradient on hover */
-}
-
-.download-btn-gradient {
-    background-image: linear-gradient(to right, #3B82F6, #60A5FA); /* Blue shades */
-    background-size: 200% auto;
-    transition: background-position 0.4s ease-out;
-}
-
-.download-btn-gradient:hover {
-    background-position: right center;
-}
-
-
-/* Modal Specific Styles */
-#downloadModal {
-    /* Tailwind's hidden utility takes care of display: none */
-    opacity: 0;
-    visibility: hidden; /* Start hidden for better transition control */
-    transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-}
-
-#downloadModal.active {
+.modal-overlay.active {
     opacity: 1;
     visibility: visible;
 }
 
-#downloadModal > div {
-    /* Modal content styling */
-    transform: scale(0.9); /* Slightly smaller when not active */
-    transition: transform 0.3s ease-out;
+.modal-content {
+    /* No transform or complex transitions for modal content */
+    transition: none;
 }
 
-#downloadModal.active > div {
-    transform: scale(1);
-}
-
-/* Shadow for the modal content */
+/* Shadow for the modal content - kept for visual separation */
 .shadow-3xl {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
-/* Bookmark icon specific styles */
-/* The default state (not bookmarked) uses text-gray-400 stroke="currentColor" fill="none" */
-/* The bookmarked state uses text-yellow-400 fill="currentColor" */
+/* Bookmark icon specific styles - keep as is for functionality */
 .bookmark-icon {
-    /* Add any additional styles for position, size, etc. here */
-    /* Tailwind classes are primary for appearance, but this can ensure consistency */
-    display: flex; /* To center the SVG within the button */
+    display: flex;
     align-items: center;
     justify-content: center;
 }
-
