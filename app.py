@@ -9,12 +9,18 @@ the blueprints containing the application's routes.
 from flask import Flask, url_for
 import logging
 from routes import main_bp # Import the blueprint from your new routes.py
+from extensions import cache
 
 # Configure logging (minimal, or remove if not needed for production)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create a Flask application instance
 app = Flask(__name__)
+
+# Configure Cache
+app.config["CACHE_TYPE"] = "SimpleCache"  # In-memory cache
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300 # Cache timeout in seconds (5 minutes)
+cache.init_app(app)
 
 # Register the blueprint containing your routes
 app.register_blueprint(main_bp)

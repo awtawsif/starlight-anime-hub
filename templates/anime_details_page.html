@@ -5,15 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ anime_details.title }} Details | Starlight Anime Hub</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
-<body class="bg-gradient-to-br from-gray-900 to-black text-gray-100 min-h-screen antialiased flex flex-col page-enter-active">
+<body class="bg-black text-green-400 font-mono">
 
     <!-- Navigation Bar -->
     {% include 'navbar.html' %}
@@ -21,11 +21,11 @@
     <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col">
 
         <!-- Header Section -->
-        <header class="text-center mb-12 animate-fade-in-down">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-wide drop-shadow-lg">
-                Anime Details
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+                ANIME DETAILS
             </h1>
-            <p class="text-lg text-blue-300 font-light mb-4 max-w-xl mx-auto">
+            <p class="text-lg text-green-300 font-light mb-4 max-w-xl mx-auto">
                 Discover more about {{ anime_details.title }}.
             </p>
         </header>
@@ -33,35 +33,29 @@
         <!-- Anime Details Section -->
         <main class="flex-grow">
             {% if error_message %}
-            <div class="text-center py-12 bg-red-900/40 border border-red-700 rounded-xl animate-fade-in text-white shadow-xl">
+            <div class="text-center py-12 bg-red-900 border border-red-700 text-white">
                 <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
                 <p class="text-red-200 text-md">{{ error_message }}</p>
             </div>
             {% else %}
-            <div class="bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8 animate-fade-in-up">
+            <div class="bg-black border-2 border-green-400 p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8">
                 <div class="md:w-1/3 flex-shrink-0 relative">
                     <img
                         src="{{ url_for('main.proxy_image', url=anime_details.poster) }}"
                         alt="Poster for {{ anime_details.title }}"
-                        class="w-full h-auto object-cover rounded-lg shadow-lg border border-gray-600/50"
-                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter';"
+                        class="w-full h-auto object-cover border-2 border-green-400"
+                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/00ff00?text=No+Image+Available&font=vt323';"
                         loading="lazy"
                     >
                     <!-- Bookmark Icon for Anime Details Page -->
                     <button
-                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 rounded-full bg-gray-900/70 text-gray-400 hover:text-yellow-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                        class="bookmark-icon absolute top-3 left-3 z-20 p-2 bg-black text-green-400 border-2 border-green-400"
                         title="Add to Bookmarks"
-                        onclick="toggleBookmark(event, {
-                            session_id: '{{ anime_session_id }}',
-                            title: '{{ anime_details.title | e }}',
-                            poster: '{{ anime_details.poster | e }}',
-                            type: '{{ anime_details.type | e }}',
-                            year: (function(aired) {
-                                const match = aired.match(/\d{4}/);
-                                return match ? match[0] : 'N/A'; // Or a default value if year not found
-                            })('{{ anime_details.aired | e }}')
-                        })"
                         data-session-id="{{ anime_session_id }}"
+                        data-anime-title="{{ anime_details.title | e }}"
+                        data-poster="{{ anime_details.poster | e }}"
+                        data-type="{{ anime_details.type | e }}"
+                        data-aired="{{ anime_details.aired | e }}" {# Changed data-year to data-aired #}
                     >
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path>
@@ -70,32 +64,32 @@
                 </div>
 
                 <div class="md:w-2/3 text-center md:text-left">
-                    <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">{{ anime_details.title }}</h2>
-                    <p class="text-gray-300 line-clamp-5 mb-6 leading-relaxed cursor-pointer" onclick="toggleText(this)">{{ anime_details.synopsis }}</p><script> function toggleText(el) { el.classList.toggle('line-clamp-5'); }</script>
+                    <h2 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 leading-tight">{{ anime_details.title }}</h2>
+                    <p class="text-green-300 mb-6 leading-relaxed cursor-pointer" onclick="this.classList.toggle('line-clamp-5')">{{ anime_details.synopsis }}</p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8 text-lg">
-                        <p><strong class="text-blue-400">Type:</strong> {{ anime_details.type }}</p>
-                        <p><strong class="text-blue-400">Episodes:</strong> {{ anime_details.episodes }}</p>
-                        <p><strong class="text-blue-400">Status:</strong> {{ anime_details.status }}</p>
-                        <p><strong class="text-blue-400">Aired:</strong> {{ anime_details.aired }}</p>
-                        <p><strong class="text-blue-400">Season:</strong> {{ anime_details.season }}</p>
-                        <p><strong class="text-blue-400">Studio:</strong> {{ anime_details.studio }}</p>
-                        <p><strong class="text-blue-400">Duration:</strong> {{ anime_details.duration }}</p>
-                        <p class="col-span-1 sm:col-span-2"><strong class="text-blue-400">Genres:</strong> {{ anime_details.genre }}</p>
-                        <p class="col-span-1 sm:col-span-2"><strong class="text-blue-400">Themes:</strong> {{ anime_details.theme }}</p>
+                        <p><strong class="text-green-500">Type:</strong> {{ anime_details.type }}</p>
+                        <p><strong class="text-green-500">Episodes:</strong> {{ anime_details.episodes }}</p>
+                        <p><strong class="text-green-500">Status:</strong> {{ anime_details.status }}</p>
+                        <p><strong class="text-green-500">Aired:</strong> {{ anime_details.aired }}</p>
+                        <p><strong class="text-green-500">Season:</strong> {{ anime_details.season }}</p>
+                        <p><strong class="text-green-500">Studio:</strong> {{ anime_details.studio }}</p>
+                        <p><strong class="text-green-500">Duration:</strong> {{ anime_details.duration }}</p>
+                        <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Genres:</strong> {{ anime_details.genre }}</p>
+                        <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Themes:</strong> {{ anime_details.theme }}</p>
                         {% if anime_details.synonyms and anime_details.synonyms != 'N/A' %}
-                        <p class="col-span-1 sm:col-span-2"><strong class="text-blue-400">Synonyms:</strong> {{ anime_details.synonyms }}</p>
+                        <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Synonyms:</strong> {{ anime_details.synonyms }}</p>
                         {% endif %}
                         {% if anime_details.japanese and anime_details.japanese != 'N/A' %}
-                        <p class="col-span-1 sm:col-span-2"><strong class="text-blue-400">Japanese:</strong> {{ anime_details.japanese }}</p>
+                        <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Japanese:</strong> {{ anime_details.japanese }}</p>
                         {% endif %}
                         {% if anime_details.demographic and anime_details.demographic != 'N/A' %}
-                        <p class="col-span-1 sm:col-span-2"><strong class="text-blue-400">Demographic:</strong> {{ anime_details.demographic }}</p>
+                        <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Demographic:</strong> {{ anime_details.demographic }}</p>
                         {% endif %}
                     </div>
 
                     <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_details.title) }}"
-                       class="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-bold text-xl rounded-lg shadow-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 btn-gradient">
+                       class="inline-flex items-center px-8 py-4 bg-green-500 text-black font-bold text-xl border-2 border-green-500 btn-primary">
                         <svg class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.132l-3.398-3.398m0 0a3.001 3.001 0 00-4.243 0l-1.414 1.414a3.001 3.001 0 000 4.243l3.398 3.398M14.752 11.132a3.001 3.001 0 000 4.243l1.414 1.414a3.001 3.001 0 004.243 0l3.398-3.398M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5M17.5 8.384L14.752 11.132M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5" />
                         </svg>
@@ -106,24 +100,24 @@
 
             <!-- Relations Section -->
             {% if anime_details.relations %}
-            <section class="mt-12 bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in-up">
-                <h3 class="text-3xl font-bold text-white mb-6 text-center md:text-left">Relations</h3>
+            <section class="mt-12 bg-black border-2 border-green-400 p-6 md:p-8">
+                <h3 class="text-3xl font-bold text-green-400 mb-6 text-center md:text-left">Relations</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {% for relation in anime_details.relations %}
-                    <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
+                    <div class="flex items-center bg-black border-2 border-green-400 p-4">
                         <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
                             <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}">
-                                <img src="{{ url_for('main.proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';" loading="lazy">
+                                <img src="{{ url_for('main.proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover border-2 border-green-400" onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';" loading="lazy">
                             </a>
                         </div>
                         <div class="flex-grow">
-                            <h4 class="text-blue-400 text-sm font-semibold mb-1">{{ relation.relation_type_label }}</h4>
-                            <h5 class="text-lg font-bold text-white leading-tight mb-1">
-                                <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}" class="hover:text-blue-300 transition-colors duration-200">
+                            <h4 class="text-green-500 text-sm font-semibold mb-1">{{ relation.relation_type_label }}</h4>
+                            <h5 class="text-lg font-bold text-green-400 leading-tight mb-1">
+                                <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}" class="hover:text-green-300">
                                     {{ relation.title }}
                                 </a>
                             </h5>
-                            <p class="text-gray-300 text-sm">
+                            <p class="text-green-300 text-sm">
                                 <span class="font-medium">{{ relation.type }}</span> &middot;
                                 {{ relation.episodes_status }}<br>
                                 {% if relation.season != 'N/A' %}<span class="text-gray-400">{{ relation.season }}</span>{% endif %}
@@ -137,23 +131,23 @@
 
             <!-- Recommendations Section -->
             {% if anime_details.recommendations %}
-            <section class="mt-12 bg-gray-800/70 border border-gray-700/50 rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in-up">
-                <h3 class="text-3xl font-bold text-white mb-6 text-center md:text-left">Anime You Might Like</h3>
+            <section class="mt-12 bg-black border-2 border-green-400 p-6 md:p-8">
+                <h3 class="text-3xl font-bold text-green-400 mb-6 text-center md:text-left">Anime You Might Like</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {% for rec in anime_details.recommendations %}
-                    <div class="flex items-center bg-gray-900/60 rounded-lg shadow-md p-4 transition-all duration-300 hover:scale-[1.01] hover:bg-gray-700/50 border border-gray-800">
+                    <div class="flex items-center bg-black border-2 border-green-400 p-4">
                         <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
                             <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}">
-                                <img src="{{ url_for('main.proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover rounded-md shadow-sm" onerror="this.onerror=null;this.src='https://placehold.co/100x150/1a202c/ffffff?text=No+Img';" loading="lazy">
+                                <img src="{{ url_for('main.proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover border-2 border-green-400" onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';" loading="lazy">
                             </a>
                         </div>
                         <div class="flex-grow">
-                            <h5 class="text-lg font-bold text-white leading-tight mb-1">
-                                <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}" class="hover:text-blue-300 transition-colors duration-200">
+                            <h5 class="text-lg font-bold text-green-400 leading-tight mb-1">
+                                <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}" class="hover:text-green-300">
                                     {{ rec.title }}
                                 </a>
                             </h5>
-                            <p class="text-gray-300 text-sm">
+                            <p class="text-green-300 text-sm">
                                 <span class="font-medium">{{ rec.type }}</span>
                                 {{ rec.episodes_status }}<br>
                                 {% if rec.season != 'N/A' %}<span class="text-gray-400">{{ rec.season }}</span>{% endif %}
@@ -169,26 +163,8 @@
         </main>
     </div>
 
-    <!-- Footer -->
-    <footer class="text-center text-gray-500 text-sm py-6 mt-auto">
-        &copy; 2024 Starlight Anime Hub. All rights reserved.
-    </footer>
-    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
-    <!-- New Bookmark Manager Script -->
-    <script src="{{ url_for('static', filename='js/bookmark_manager.js') }}"></script>
-
-    <script>
-        // Initialize bookmark status for the anime on this details page
-        document.addEventListener('DOMContentLoaded', () => {
-            const bookmarkIcon = document.querySelector('.bookmark-icon'); // Select by class, as there's only one relevant
-            if (bookmarkIcon) {
-                const sessionId = bookmarkIcon.dataset.sessionId;
-                if (sessionId) {
-                    renderBookmarkStatus(bookmarkIcon, sessionId);
-                }
-            }
-        });
-    </script>
+    <!-- Consolidated JavaScript file -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 
 </html>
