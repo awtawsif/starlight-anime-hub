@@ -1,7 +1,5 @@
 # ✨ Starlight Anime Hub ✨
 
-![Starlight Anime Hub Banner](https://via.placeholder.com/1200x400/1a202c/ffffff?text=Starlight+Anime+Hub+Banner&font=Inter)
-
 ## 🚀 Introduction
 
 Starlight Anime Hub is a sleek and intuitive web application designed for anime enthusiasts to effortlessly discover, explore, and access their favorite anime. Leveraging the AnimePahe API and intelligent web scraping, it provides a seamless experience for searching anime, viewing detailed information, browsing currently airing titles, and even finding direct download links for episodes.
