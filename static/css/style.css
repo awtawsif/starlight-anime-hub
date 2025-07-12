@@ -53,3 +53,8 @@ body {
     align-items: center;
     justify-content: center;
 }
+
+/* Ensure all clickable elements have a pointer cursor */
+a, button, .anime-card, .episode-card, .bookmark-icon, .btn-primary, [onclick] {
+    cursor: pointer;
+}
