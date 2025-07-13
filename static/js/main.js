@@ -382,6 +382,19 @@
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
         // Initialize navbar scroll behavior
         if (navbar) {
             window.addEventListener('scroll', handleNavbarScroll);
