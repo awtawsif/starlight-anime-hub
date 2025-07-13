@@ -101,7 +101,7 @@ Before you begin, ensure you have the following installed:
 
 ## 🌐 Live Demo
 
-Experience Starlight Anime Hub live at: [https://starlight-anime-hub.onrender.com/](https://starlight-anime-hub.onrender.com/)
+Experience Starlight Anime Hub live at: [https://starlight-anime-hub.vercel.app/](https://starlight-anime-hub.vercel.app/)
 
 ## 💡 Usage
 
