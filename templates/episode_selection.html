@@ -8,19 +8,6 @@
     <meta name="description" content="Episodes for {{ anime_title }}. {{ config.WEBSITE_DESCRIPTION }}">
     <meta name="keywords" content="{{ config.WEBSITE_KEYWORDS }}, {{ anime_title | lower | replace(' ', ', ') }}, episodes">
     
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="Episodes - {{ anime_title }} | {{ config.WEBSITE_TITLE }}">
-    <meta property="og:description" content="Episodes for {{ anime_title }}. {{ config.WEBSITE_DESCRIPTION }}">
-    <meta property="og:image" content="{{ url_for('static', filename='img/favicon.jpg', _external=True) }}">
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ request.url }}">
-    <meta property="twitter:title" content="Episodes - {{ anime_title }} | {{ config.WEBSITE_TITLE }}">
-    <meta property="twitter:description" content="Episodes for {{ anime_title }}. {{ config.WEBSITE_DESCRIPTION }}">
-    <meta property="twitter:image" content="{{ url_for('static', filename='img/favicon.jpg', _external=True) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
