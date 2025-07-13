@@ -6,10 +6,11 @@ It initializes the Flask application, configures logging, and registers
 the blueprints containing the application's routes.
 """
 
-from flask import Flask, url_for
+from flask import Flask, url_for, request
 import logging
 from routes import main_bp # Import the blueprint from your new routes.py
 from extensions import cache
+import config # Import your config.py
 
 # Configure logging (minimal, or remove if not needed for production)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,6 +25,10 @@ cache.init_app(app)
 
 # Register the blueprint containing your routes
 app.register_blueprint(main_bp)
+
+@app.context_processor
+def inject_config():
+    return dict(config=config, request=request)
 
 # --- Run the Application ---
 if __name__ == '__main__':

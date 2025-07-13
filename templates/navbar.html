@@ -2,7 +2,7 @@
     <div class="container mx-auto flex justify-between items-center flex-wrap">
         <!-- Logo/Brand -->
         <a href="{{ url_for('main.search_page') }}" class="text-green-400 text-3xl font-bold flex flex-col items-start lg:flex-row lg:items-center group">
-            <span class="text-xl md:text-2xl lg:text-3xl">Starlight <span class="text-green-300">Anime</span> Hub</span>
+            <span class="text-xl md:text-2xl lg:text-3xl">{{ config.WEBSITE_TITLE }}</span>
         </a>
 
         <!-- Mobile Menu Toggle -->

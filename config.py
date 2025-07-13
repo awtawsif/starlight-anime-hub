@@ -1,7 +1,7 @@
 """
 config.py
-~~~~~~~~~
-This module contains configuration settings for the Anime API and HTTP headers.
+---------
+This module contains configuration settings for the Anime API, HTTP headers, and website metadata.
 """
 
 # Base URL for the animepahe API
@@ -27,3 +27,9 @@ API_HEADERS = {
 REDIRECT_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
 }
+
+# Website Metadata
+WEBSITE_TITLE = "Starlight Anime Hub"
+WEBSITE_DESCRIPTION = "Your ultimate destination for anime streaming and information."
+WEBSITE_IMAGE = "/static/img/favicon.jpg"  # Path to a default social sharing image
+WEBSITE_KEYWORDS = "anime, watch anime, anime streaming, anime hub, latest anime"

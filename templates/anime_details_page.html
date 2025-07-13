@@ -4,7 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ anime_details.title }} Details | Starlight Anime Hub</title>
+    <title>{{ anime_details.title }} Details | {{ config.WEBSITE_TITLE }}</title>
+    <meta name="description" content="{{ anime_details.synopsis | truncate(160) }}">
+    <meta name="keywords" content="{{ config.WEBSITE_KEYWORDS }}, {{ anime_details.title | lower | replace(' ', ', ') }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{{ anime_details.title }} Details | {{ config.WEBSITE_TITLE }}">
+    <meta property="og:description" content="{{ anime_details.synopsis | truncate(160) }}">
+    <meta property="og:image" content="{{ url_for('main.proxy_image', url=anime_details.poster, _external=True) }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="{{ anime_details.title }} Details | {{ config.WEBSITE_TITLE }}">
+    <meta property="twitter:description" content="{{ anime_details.synopsis | truncate(160) }}">
+    <meta property="twitter:image" content="{{ url_for('main.proxy_image', url=anime_details.poster, _external=True) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
