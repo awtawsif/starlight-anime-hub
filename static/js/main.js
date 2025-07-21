@@ -715,7 +715,7 @@
                     session_id: bookmarkBtn.dataset.sessionId,
                     title: bookmarkBtn.dataset.animeTitle || bookmarkBtn.closest('.anime-card')?.querySelector('h3')?.title || 'Unknown Title',
                     poster: bookmarkBtn.dataset.poster || bookmarkBtn.closest('.anime-card')?.querySelector('img')?.src || '',
-                    type: bookmark.dataset.type || bookmarkBtn.closest('.anime-card')?.querySelector('p.text-blue-300')?.textContent.split(' ')[0] || 'Unknown Type',
+                    type: bookmarkBtn.dataset.type || bookmarkBtn.closest('.anime-card')?.querySelector('p.text-blue-300')?.textContent.split(' ')[0] || 'Unknown Type',
                     // Extract year from data-aired if present, otherwise try data-year, then infer from text
                     year: (() => {
                         const airedDate = bookmarkBtn.dataset.aired;
