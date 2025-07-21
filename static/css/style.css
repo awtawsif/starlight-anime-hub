@@ -54,6 +54,42 @@ body {
     justify-content: center;
 }
 
+/* Watched Episode Icon and Styling */
+.watched-icon {
+    /* Adjusted for a more retro, less "catchy" look */
+    color: #00ff00; /* Green retro text */
+    border: 2px solid #00ff00; /* Green border */
+    background-color: #000; /* Black background */
+    border-radius: 0; /* Sharp corners */
+    padding: 0.5rem; /* Slightly smaller padding */
+    transition: all 0.1s ease-in-out; /* Smooth transition */
+}
+
+.watched-icon:hover {
+    background-color: #00cc00; /* Darker green on hover */
+    color: #000; /* Black text on hover */
+}
+
+.watched-icon svg {
+    stroke: currentColor; /* Ensure stroke color matches text color */
+    fill: none; /* No fill by default */
+}
+
+.episode-card.watched-episode .watched-icon {
+    background-color: #00ff00; /* Filled green when watched */
+    color: #000; /* Black checkmark when watched */
+}
+
+.episode-card.watched-episode .watched-icon svg {
+    fill: currentColor; /* Fill the checkmark when watched */
+    stroke: none; /* No stroke when filled */
+}
+
+.episode-card.watched-episode {
+    border-color: #00cc00; /* Darker green border for watched episodes */
+    box-shadow: 0 0 8px rgba(0, 204, 0, 0.7); /* Subtle green glow */
+}
+
 /* Ensure all clickable elements have a pointer cursor */
 a, button, .anime-card, .episode-card, .bookmark-icon, .btn-primary, [onclick] {
     cursor: pointer;

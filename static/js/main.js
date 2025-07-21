@@ -14,6 +14,7 @@
 (function() {
     // --- Constants ---
     const BOOKMARK_STORAGE_KEY = 'starlightAnimeBookmarks';
+    const WATCHED_EPISODES_STORAGE_KEY = 'starlightWatchedEpisodes'; // New storage key for watched episodes
 
     // --- DOM Element References (Cached for performance) ---
     const navbar = document.getElementById('navbar');
@@ -34,7 +35,7 @@
     const errorMessage = document.getElementById('errorMessage');
     const closeDownloadModalBtn = downloadModal ? downloadModal.querySelector('button') : null;
 
-    // --- Utility Functions ---
+    // --- Utility Functions for Bookmarks ---
 
     /**
      * Retrieves all bookmarked anime data from localStorage.
@@ -140,6 +141,104 @@
         renderBookmarkStatus(bookmarkElement, sessionId); // Use bookmarkElement directly
     }
 
+    // --- New Utility Functions for Episode Tracking ---
+
+    /**
+     * Retrieves all watched episodes data from localStorage.
+     * @returns {Object} An object where keys are animeSessionIds and values are arrays of watched episodeSessionIds.
+     * Returns an empty object if no data is found or if storage fails.
+     */
+    function getWatchedEpisodesData() {
+        try {
+            const storedData = localStorage.getItem(WATCHED_EPISODES_STORAGE_KEY);
+            return storedData ? JSON.parse(storedData) : {};
+        } catch (error) {
+            console.error("Error retrieving watched episodes data from localStorage:", error);
+            return {};
+        }
+    }
+
+    /**
+     * Saves the current watched episodes data to localStorage.
+     * @param {Object} data The object containing watched episodes data to save.
+     */
+    function saveWatchedEpisodesData(data) {
+        try {
+            localStorage.setItem(WATCHED_EPISODES_STORAGE_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.error("Error saving watched episodes data to localStorage:", error);
+        }
+    }
+
+    /**
+     * Checks if a specific episode of an anime is marked as watched.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     * @returns {boolean} True if the episode is watched, false otherwise.
+     */
+    function isEpisodeWatched(animeSessionId, episodeSessionId) {
+        const watchedData = getWatchedEpisodesData();
+        return watchedData[animeSessionId] && watchedData[animeSessionId].includes(episodeSessionId);
+    }
+
+    /**
+     * Marks an episode as watched or unwatched and updates the UI.
+     * @param {HTMLElement} watchedIcon The HTML element that serves as the watched icon.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     */
+    function toggleEpisodeWatched(watchedIcon, animeSessionId, episodeSessionId) {
+        let watchedData = getWatchedEpisodesData();
+        
+        if (!watchedData[animeSessionId]) {
+            watchedData[animeSessionId] = [];
+        }
+
+        const isCurrentlyWatched = watchedData[animeSessionId].includes(episodeSessionId);
+
+        if (isCurrentlyWatched) {
+            // Mark as unwatched
+            watchedData[animeSessionId] = watchedData[animeSessionId].filter(id => id !== episodeSessionId);
+            console.log(`Episode ${episodeSessionId} of anime ${animeSessionId} marked as UNWATCHED.`);
+        } else {
+            // Mark as watched
+            watchedData[animeSessionId].push(episodeSessionId);
+            console.log(`Episode ${episodeSessionId} of anime ${animeSessionId} marked as WATCHED.`);
+        }
+
+        saveWatchedEpisodesData(watchedData);
+        renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId);
+        
+        // Optional: If on a tracking page, re-render the list
+        if (document.getElementById('tracked-episodes-list')) {
+            renderTrackedEpisodesPage();
+        }
+    }
+
+    /**
+     * Renders the visual status of an episode's watched icon.
+     * @param {HTMLElement} watchedIcon The HTML element that serves as the watched icon.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     */
+    function renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId) {
+        if (isEpisodeWatched(animeSessionId, episodeSessionId)) {
+            watchedIcon.classList.remove('text-gray-400', 'hover:text-green-300');
+            watchedIcon.classList.add('text-green-400');
+            watchedIcon.innerHTML = `<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
+            watchedIcon.title = "Mark as Unwatched";
+            // Add a class to the parent card for styling
+            watchedIcon.closest('.episode-card')?.classList.add('watched-episode');
+        } else {
+            watchedIcon.classList.remove('text-green-400');
+            watchedIcon.classList.add('text-gray-400', 'hover:text-green-300');
+            watchedIcon.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            watchedIcon.title = "Mark as Watched";
+            // Remove the class from the parent card
+            watchedIcon.closest('.episode-card')?.classList.remove('watched-episode');
+        }
+    }
+
 
     // --- Navbar Logic ---
     let lastScrollTop = 0;
@@ -217,8 +316,8 @@
             const episodeSessionId = clickedElement.dataset.episodeSessionId;
             const episodeNumber = clickedElement.dataset.episodeNumber;
 
-            // Only proceed if the click was not on a bookmark button within the card
-            if (event.target.closest('.bookmark-icon')) {
+            // Only proceed if the click was not on a bookmark or watched button within the card
+            if (event.target.closest('.bookmark-icon') || event.target.closest('.watched-icon')) {
                 return;
             }
 
@@ -418,6 +517,16 @@
             }
         });
 
+        // Initialize watched status for all existing watched icons on the page (episode_selection.html)
+        document.querySelectorAll('.watched-icon').forEach(iconElement => {
+            const animeSessionId = iconElement.dataset.animeSessionId;
+            const episodeSessionId = iconElement.dataset.episodeSessionId;
+            if (animeSessionId && episodeSessionId) {
+                renderEpisodeWatchedStatus(iconElement, animeSessionId, episodeSessionId);
+            }
+        });
+
+
         // Event delegation for bookmark toggling (for dynamically added elements)
         document.addEventListener('click', (event) => {
             const bookmarkBtn = event.target.closest('.bookmark-icon');
@@ -443,6 +552,22 @@
                     })()
                 };
                 toggleBookmark(bookmarkBtn, animeData); // Pass the actual button element
+            }
+
+            // Event delegation for watched episode toggling
+            const watchedBtn = event.target.closest('.watched-icon');
+            if (watchedBtn) {
+                event.stopPropagation();
+                event.preventDefault();
+
+                const animeSessionId = watchedBtn.dataset.animeSessionId;
+                const episodeSessionId = watchedBtn.dataset.episodeSessionId;
+                
+                if (animeSessionId && episodeSessionId) {
+                    toggleEpisodeWatched(watchedBtn, animeSessionId, episodeSessionId);
+                } else {
+                    console.error("Missing data for watched episode toggle.");
+                }
             }
         });
 
@@ -479,6 +604,17 @@
         // For bookmarks.html
         if (document.getElementById('bookmark-list')) {
             renderBookmarksPage();
+        }
+        // For episode_selection.html (to apply watched status on load)
+        if (document.querySelector('.episode-card')) {
+            document.querySelectorAll('.episode-card').forEach(card => {
+                const watchedIcon = card.querySelector('.watched-icon');
+                const animeSessionId = card.dataset.animeSessionId;
+                const episodeSessionId = card.dataset.episodeSessionId;
+                if (watchedIcon && animeSessionId && episodeSessionId) {
+                    renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId);
+                }
+            });
         }
     });
 
