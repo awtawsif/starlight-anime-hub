@@ -14,8 +14,12 @@
 
         <!-- Navigation Links and Search Form (Collapsible on Mobile) -->
         <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8">
-            <a href="{{ url_for('main.bookmarks_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium lg:ml-auto">
+            <a href="{{ url_for('main.bookmarks_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
                 Bookmarks
+            </a>
+            <!-- New "Continue Watching" Link -->
+            <a href="{{ url_for('main.continue_watching_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
+                Continue Watching
             </a>
             <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-black border-2 border-green-400 p-2 w-full lg:w-auto">
                 <input
