@@ -543,7 +543,7 @@
 
     /**
      * Renders the "Continue Watching" page content.
-     * Fetches unwatched episodes for bookmarked anime.
+     * Fetches unwatched episodes for bookmarked anime, handling pagination.
      */
     async function renderContinueWatchingPage() {
         const continueWatchingListContainer = document.getElementById('continue-watching-list');
@@ -553,7 +553,6 @@
         const errorTextSpan = document.getElementById('continue-watching-error-text');
 
         if (!continueWatchingListContainer || !loadingMessageDiv || !noUnwatchedMessageDiv || !errorMessageDiv || !errorTextSpan) {
-            // Not on the continue watching page, or elements not found
             return;
         }
 
@@ -577,56 +576,63 @@
         }
 
         for (const anime of bookmarks) {
+            let currentPage = 1;
+            let lastPage = 1;
+            let allEpisodesForAnime = [];
+
             try {
-                // Fetch all episodes for the bookmarked anime
-                // We fetch page 1 only for now, assuming most users will track recent episodes.
-                // For a full solution, pagination for API calls would be needed here.
-                const response = await fetch(`/api/anime-episodes/${anime.session_id}?page=1`); 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
+                do {
+                    const response = await fetch(`/api/anime-episodes/${anime.session_id}?page=${currentPage}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
 
-                if (data.error) {
-                    throw new Error(data.error);
-                }
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
 
-                const episodes = data.episodes || [];
+                    allEpisodesForAnime = allEpisodesForAnime.concat(data.episodes || []);
+                    lastPage = data.pagination.last_page || 1;
+                    currentPage++;
+
+                } while (currentPage <= lastPage);
+
                 const watchedForThisAnime = watchedEpisodes[anime.session_id] || [];
 
-                // Filter out episodes that are already watched
-                const unwatchedForThisAnime = episodes.filter(episode => 
+                const unwatchedForThisAnime = allEpisodesForAnime.filter(episode => 
                     !watchedForThisAnime.includes(episode.session)
                 );
 
-                // Add unwatched episodes to the main list, including parent anime data
                 unwatchedForThisAnime.forEach(episode => {
                     unwatchedEpisodesToDisplay.push({
                         episodeData: episode,
-                        animeData: anime // Include the parent anime's details
+                        animeData: anime 
                     });
                 });
 
             } catch (error) {
-                console.error(`Error fetching episodes for bookmarked anime ${anime.title} (${anime.session_id}):`, error);
+                console.error(`Error fetching all episodes for bookmarked anime ${anime.title} (${anime.session_id}):`, error);
                 hasError = true;
-                errorTextSpan.textContent = `Could not load episodes for "${anime.title}". Please try again later.`;
+                // Only show one error message for the first error encountered, or append if multiple
+                if (errorTextSpan.textContent === '') {
+                    errorTextSpan.textContent = `Could not load all episodes for "${anime.title}". Please try again later.`;
+                } else {
+                    errorTextSpan.textContent += ` Also, failed for "${anime.title}".`;
+                }
                 errorMessageDiv.classList.remove('hidden');
-                // Don't break, try to load other anime
             }
         }
 
-        loadingMessageDiv.classList.add('hidden'); // Hide loading message once all fetches are attempted
+        loadingMessageDiv.classList.add('hidden'); 
 
         if (unwatchedEpisodesToDisplay.length > 0) {
-            // Sort by anime title, then by episode number
             unwatchedEpisodesToDisplay.sort((a, b) => {
                 const animeTitleA = a.animeData.title.toLowerCase();
                 const animeTitleB = b.animeData.title.toLowerCase();
                 if (animeTitleA < animeTitleB) return -1;
                 if (animeTitleA > animeTitleB) return 1;
                 
-                // If anime titles are the same, sort by episode number
                 const episodeNumA = parseInt(a.episodeData.episode, 10);
                 const episodeNumB = parseInt(b.episodeData.episode, 10);
                 return episodeNumA - episodeNumB;
@@ -636,7 +642,6 @@
                 renderEpisodeCardForTracking(item.episodeData, item.animeData)
             ).join('');
 
-            // Re-initialize watched status for newly rendered cards
             continueWatchingListContainer.querySelectorAll('.watched-icon').forEach(iconElement => {
                 const animeSessionId = iconElement.dataset.animeSessionId;
                 const episodeSessionId = iconElement.dataset.episodeSessionId;
@@ -646,7 +651,6 @@
             });
 
         } else if (!hasError) {
-            // Only show "no unwatched" message if no errors occurred and list is empty
             noUnwatchedMessageDiv.classList.remove('hidden');
             noUnwatchedMessageDiv.querySelector('p:first-of-type').textContent = "You're all caught up!";
             noUnwatchedMessageDiv.querySelector('p:last-of-type').textContent = "No unwatched episodes from your bookmarked anime.";
