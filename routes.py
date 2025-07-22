@@ -144,6 +144,26 @@ def episode_selection_page(anime_session_id):
         pagination=pagination_data # Pass pagination data to the template
     )
 
+# New API endpoint to fetch episodes as JSON
+@main_bp.route('/api/anime-episodes/<string:anime_session_id>', methods=['GET'])
+@cache.cached(timeout=3600, query_string=True)
+def get_anime_episodes_json(anime_session_id):
+    """
+    Fetches a paginated list of episodes for a given anime session ID and returns it as JSON.
+    Used by client-side JavaScript for features like "Continue Watching".
+    """
+    page = request.args.get('page', 1, type=int)
+    episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page)
+
+    if error_message:
+        return jsonify({'error': error_message}), 500
+    
+    return jsonify({
+        'episodes': episodes,
+        'pagination': pagination_data
+    })
+
+
 @main_bp.route('/api/episode-downloads/<string:anime_session_id>/<string:episode_session_id>', methods=['GET'])
 @cache.cached(timeout=900)
 def get_episode_downloads(anime_session_id, episode_session_id):
@@ -180,3 +200,12 @@ def bookmarks_page():
     Renders the bookmarks page. Bookmarks are loaded client-side from localStorage.
     """
     return render_template('bookmarks.html')
+
+# New route for the "Continue Watching" page
+@main_bp.route('/continue-watching')
+def continue_watching_page():
+    """
+    Renders the continue watching page. Unwatched episodes for bookmarked anime
+    are loaded client-side from localStorage and API calls.
+    """
+    return render_template('continue_watching.html')

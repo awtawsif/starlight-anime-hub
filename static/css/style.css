@@ -54,6 +54,18 @@ body {
     justify-content: center;
 }
 
+/* Optional: Add some styling for watched episodes */
+.episode-card.watched-episode .watched-icon {
+    color: #10B981; /* Tailwind green-500 */
+}
+.episode-card.watched-episode .watched-icon svg {
+    fill: currentColor; /* Ensure the checkmark is filled */
+}
+.episode-card.watched-episode {
+    border-color: #10B981; /* Green border for watched episodes */
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); /* Green glow */
+}
+
 /* Ensure all clickable elements have a pointer cursor */
 a, button, .anime-card, .episode-card, .bookmark-icon, .btn-primary, [onclick] {
     cursor: pointer;

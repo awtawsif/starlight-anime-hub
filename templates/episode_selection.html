@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body class="bg-black text-green-400 font-mono">
@@ -27,8 +26,20 @@
                 EPISODES FOR: <span class="text-green-300"><a href="{{ url_for('main.anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}">{{ anime_title }}</a></span>
             </h1>
             <p class="text-lg text-green-300 font-light mb-4 max-w-xl mx-auto">
-                Select an episode for download options.
+                Select an episode for download options. Mark watched episodes to track your progress!
             </p>
+            <!-- New Mark All/Unmark All Buttons -->
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="markAllWatchedBtn" 
+                        class="btn-primary px-6 py-3 text-lg font-semibold"
+                        data-anime-session-id="{{ anime_session_id }}">
+                    Mark All
+                </button>
+                <button id="unmarkAllWatchedBtn" 
+                        class="btn-primary px-6 py-3 text-lg font-semibold bg-gray-700 hover:bg-gray-600 border-gray-700 hover:border-gray-600">
+                    Unmark All
+                </button>
+            </div>
         </header>
 
         <main class="flex-grow">
@@ -40,32 +51,50 @@
             {% elif episodes %}
             <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                 {% for episode in episodes %}
-                <a href="javascript:void(0);" 
-                   class="episode-card group block bg-black border-2 border-green-400 cursor-pointer"
+                <div class="episode-card group block cursor-pointer relative"
                    data-anime-session-id="{{ anime_session_id }}"
                    data-anime-title="{{ anime_title }}"
                    data-episode-session-id="{{ episode.session }}"
                    data-episode-number="{{ episode.episode }}"
                 > 
-                    <!-- Image container -->
-                    <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
-                        <img 
-                            src="{{ url_for('main.proxy_image', url=episode.snapshot) }}" 
-                            alt="Snapshot for Episode {{ episode.episode }}" 
-                            class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
-                            onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
-                            loading="lazy"
-                        >
-                    </div>
-                    <!-- Text content -->
-                    <div class="p-4 text-center bg-black">
-                        <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
-                        {% if episode.title %}
-                        <p class="text-sm text-green-300 truncate" title="{{ episode.title }}">{{ episode.title }}</p>
-                        {% endif %}
-                        <p class="text-xs text-gray-400 mt-1">{{ episode.duration }}</p>
-                    </div>
-                </a>
+                    <!-- Watched Icon -->
+                    <button
+                        class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
+                        title="Mark as Watched"
+                        data-anime-session-id="{{ anime_session_id }}"
+                        data-episode-session-id="{{ episode.session }}"
+                    >
+                        <!-- Default SVG for unwatched state (will be updated by JS) -->
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+
+                    <!-- Image container - wrapped in an anchor for main click behavior -->
+                    <a href="javascript:void(0);" 
+                       class="block w-full h-full"
+                       data-anime-session-id="{{ anime_session_id }}"
+                       data-anime-title="{{ anime_title }}"
+                       data-episode-session-id="{{ episode.session }}"
+                       data-episode-number="{{ episode.episode }}"
+                    >
+                        <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
+                            <img 
+                                src="{{ url_for('main.proxy_image', url=episode.snapshot) }}" 
+                                alt="Snapshot for Episode {{ episode.episode }}" 
+                                class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                                onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
+                                loading="lazy"
+                            >
+                        </div>
+                        <!-- Text content -->
+                        <div class="p-4 text-center bg-black">
+                            <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
+                            {% if episode.title %}
+                            <p class="text-sm text-green-300 truncate" title="{{ episode.title }}">{{ episode.title }}</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 mt-1">{{ episode.duration }}</p>
+                        </div>
+                    </a>
+                </div>
                 {% endfor %}
             </div>
 

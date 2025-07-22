@@ -14,6 +14,8 @@
 (function() {
     // --- Constants ---
     const BOOKMARK_STORAGE_KEY = 'starlightAnimeBookmarks';
+    const WATCHED_EPISODES_STORAGE_KEY = 'starlightWatchedEpisodes'; // New storage key for watched episodes
+    const ITEMS_PER_PAGE_CONTINUE_WATCHING = 30; // Number of unwatched episodes to show per page
 
     // --- DOM Element References (Cached for performance) ---
     const navbar = document.getElementById('navbar');
@@ -34,7 +36,11 @@
     const errorMessage = document.getElementById('errorMessage');
     const closeDownloadModalBtn = downloadModal ? downloadModal.querySelector('button') : null;
 
-    // --- Utility Functions ---
+    // --- Global state for Continue Watching pagination ---
+    let allUnwatchedEpisodes = []; // Stores all unwatched episodes after initial fetch
+    let currentContinueWatchingPage = 1;
+
+    // --- Utility Functions for Bookmarks ---
 
     /**
      * Retrieves all bookmarked anime data from localStorage.
@@ -140,6 +146,177 @@
         renderBookmarkStatus(bookmarkElement, sessionId); // Use bookmarkElement directly
     }
 
+    // --- New Utility Functions for Episode Tracking ---
+
+    /**
+     * Retrieves all watched episodes data from localStorage.
+     * @returns {Object} An object where keys are animeSessionIds and values are arrays of watched episodeSessionIds.
+     * Returns an empty object if no data is found or if storage fails.
+     */
+    function getWatchedEpisodesData() {
+        try {
+            const storedData = localStorage.getItem(WATCHED_EPISODES_STORAGE_KEY);
+            return storedData ? JSON.parse(storedData) : {};
+        } catch (error) {
+            console.error("Error retrieving watched episodes data from localStorage:", error);
+            return {};
+        }
+    }
+
+    /**
+     * Saves the current watched episodes data to localStorage.
+     * @param {Object} data The object containing watched episodes data to save.
+     */
+    function saveWatchedEpisodesData(data) {
+        try {
+            localStorage.setItem(WATCHED_EPISODES_STORAGE_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.error("Error saving watched episodes data to localStorage:", error);
+        }
+    }
+
+    /**
+     * Checks if a specific episode of an anime is marked as watched.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     * @returns {boolean} True if the episode is watched, false otherwise.
+     */
+    function isEpisodeWatched(animeSessionId, episodeSessionId) {
+        const watchedData = getWatchedEpisodesData();
+        return watchedData[animeSessionId] && watchedData[animeSessionId].includes(episodeSessionId);
+    }
+
+    /**
+     * Marks an episode as watched or unwatched and updates the UI.
+     * @param {HTMLElement} watchedIcon The HTML element that serves as the watched icon.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     */
+    function toggleEpisodeWatched(watchedIcon, animeSessionId, episodeSessionId) {
+        let watchedData = getWatchedEpisodesData();
+        
+        if (!watchedData[animeSessionId]) {
+            watchedData[animeSessionId] = [];
+        }
+
+        const isCurrentlyWatched = watchedData[animeSessionId].includes(episodeSessionId);
+
+        if (isCurrentlyWatched) {
+            // Mark as unwatched
+            watchedData[animeSessionId] = watchedData[animeSessionId].filter(id => id !== episodeSessionId);
+            console.log(`Episode ${episodeSessionId} of anime ${animeSessionId} marked as UNWATCHED.`);
+        } else {
+            // Mark as watched
+            watchedData[animeSessionId].push(episodeSessionId);
+            console.log(`Episode ${episodeSessionId} of anime ${animeSessionId} marked as WATCHED.`);
+        }
+
+        saveWatchedEpisodesData(watchedData);
+        renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId);
+        
+        // If on the continue watching page, re-render the list to remove the watched episode
+        if (document.getElementById('continue-watching-list')) {
+            renderContinueWatchingPage(currentContinueWatchingPage); // Re-render current page
+        }
+    }
+
+    /**
+     * Renders the visual status of an episode's watched icon.
+     * @param {HTMLElement} watchedIcon The HTML element that serves as the watched icon.
+     * @param {string} animeSessionId The session ID of the anime.
+     * @param {string} episodeSessionId The session ID of the episode.
+     */
+    function renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId) {
+        if (isEpisodeWatched(animeSessionId, episodeSessionId)) {
+            watchedIcon.classList.remove('text-gray-400', 'hover:text-green-300');
+            watchedIcon.classList.add('text-green-400');
+            watchedIcon.innerHTML = `<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
+            watchedIcon.title = "Mark as Unwatched";
+            // Add a class to the parent card for styling
+            watchedIcon.closest('.episode-card')?.classList.add('watched-episode');
+        } else {
+            watchedIcon.classList.remove('text-green-400');
+            watchedIcon.classList.add('text-gray-400', 'hover:text-green-300');
+            watchedIcon.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            watchedIcon.title = "Mark as Watched";
+            // Remove the class from the parent card
+            watchedIcon.closest('.episode-card')?.classList.remove('watched-episode');
+        }
+    }
+
+    /**
+     * Marks all episodes of a specific anime as watched.
+     * @param {string} animeSessionId The session ID of the anime.
+     */
+    async function markAllEpisodesWatchedForAnime(animeSessionId) {
+        let watchedData = getWatchedEpisodesData();
+        if (!watchedData[animeSessionId]) {
+            watchedData[animeSessionId] = [];
+        }
+
+        try {
+            let currentPage = 1;
+            let lastPage = 1;
+            let allEpisodes = [];
+
+            do {
+                const response = await fetch(`/api/anime-episodes/${animeSessionId}?page=${currentPage}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                allEpisodes = allEpisodes.concat(data.episodes || []);
+                lastPage = data.pagination.last_page || 1;
+                currentPage++;
+            } while (currentPage <= lastPage);
+
+            const episodeSessionsToMark = allEpisodes.map(ep => ep.session);
+            // Add only new episodes to watched list, avoid duplicates
+            watchedData[animeSessionId] = Array.from(new Set([...watchedData[animeSessionId], ...episodeSessionsToMark]));
+            saveWatchedEpisodesData(watchedData);
+            console.log(`All episodes for anime ${animeSessionId} marked as WATCHED.`);
+
+            // Update UI for all episode cards on the current page
+            document.querySelectorAll('.episode-card[data-anime-session-id="' + animeSessionId + '"] .watched-icon').forEach(iconElement => {
+                renderEpisodeWatchedStatus(iconElement, animeSessionId, iconElement.dataset.episodeSessionId);
+            });
+            // If on continue watching page, refresh it
+            if (document.getElementById('continue-watching-list')) {
+                renderContinueWatchingPage(currentContinueWatchingPage);
+            }
+
+        } catch (error) {
+            console.error(`Error marking all episodes watched for anime ${animeSessionId}:`, error);
+            // Provide user feedback, e.g., a temporary message on the UI
+            alert("Failed to mark all episodes as watched. Please try again later.");
+        }
+    }
+
+    /**
+     * Unmarks all episodes of a specific anime as watched.
+     * @param {string} animeSessionId The session ID of the anime.
+     */
+    function unmarkAllEpisodesWatchedForAnime(animeSessionId) {
+        let watchedData = getWatchedEpisodesData();
+        if (watchedData[animeSessionId]) {
+            watchedData[animeSessionId] = []; // Clear the array for this anime
+            saveWatchedEpisodesData(watchedData);
+            console.log(`All episodes for anime ${animeSessionId} marked as UNWATCHED.`);
+
+            // Update UI for all episode cards on the current page
+            document.querySelectorAll('.episode-card[data-anime-session-id="' + animeSessionId + '"] .watched-icon').forEach(iconElement => {
+                renderEpisodeWatchedStatus(iconElement, animeSessionId, iconElement.dataset.episodeSessionId);
+            });
+            // If on continue watching page, refresh it
+            if (document.getElementById('continue-watching-list')) {
+                renderContinueWatchingPage(currentContinueWatchingPage);
+            }
+        }
+    }
+
 
     // --- Navbar Logic ---
     let lastScrollTop = 0;
@@ -217,8 +394,8 @@
             const episodeSessionId = clickedElement.dataset.episodeSessionId;
             const episodeNumber = clickedElement.dataset.episodeNumber;
 
-            // Only proceed if the click was not on a bookmark button within the card
-            if (event.target.closest('.bookmark-icon')) {
+            // Only proceed if the click was not on a bookmark or watched button within the card
+            if (event.target.closest('.bookmark-icon') || event.target.closest('.watched-icon')) {
                 return;
             }
 
@@ -379,6 +556,315 @@
         }
     }
 
+    /**
+     * Renders an individual episode card for the "Continue Watching" page.
+     * @param {Object} episode The episode data.
+     * @param {Object} animeData The parent anime data (for title, session_id).
+     * @returns {string} The HTML string for the episode card.
+     */
+    function renderEpisodeCardForTracking(episode, animeData) {
+        const proxyImageUrl = `/proxy-image?url=${encodeURIComponent(episode.snapshot || '')}`;
+        const detailPageUrl = `/anime/${animeData.session_id}?anime_title=${encodeURIComponent(animeData.title)}`;
+
+        // Determine if the episode is watched to apply initial styling
+        const isWatched = isEpisodeWatched(animeData.session_id, episode.session);
+        const watchedClass = isWatched ? 'watched-episode' : '';
+        const watchedIconSvg = isWatched 
+            ? `<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`
+            : `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+        const watchedIconTitle = isWatched ? "Mark as Unwatched" : "Mark as Watched";
+
+        return `
+            <div class="episode-card group block cursor-pointer relative ${watchedClass}"
+               data-anime-session-id="${animeData.session_id}"
+               data-anime-title="${animeData.title.replace(/"/g, '&quot;')}"
+               data-episode-session-id="${episode.session}"
+               data-episode-number="${episode.episode}"
+            > 
+                <!-- Watched Icon -->
+                <button
+                    class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
+                    title="${watchedIconTitle}"
+                    data-anime-session-id="${animeData.session_id}"
+                    data-episode-session-id="${episode.session}"
+                >
+                    ${watchedIconSvg}
+                </button>
+
+                <!-- Image container - wrapped in an anchor for main click behavior -->
+                <a href="javascript:void(0);" 
+                   class="block w-full h-full"
+                   data-anime-session-id="${animeData.session_id}"
+                   data-anime-title="${animeData.title.replace(/"/g, '&quot;')}"
+                   data-episode-session-id="${episode.session}"
+                   data-episode-number="${episode.episode}"
+                >
+                    <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
+                        <img 
+                            src="${proxyImageUrl}" 
+                            alt="Snapshot for Episode ${episode.episode}" 
+                            class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                            onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
+                            loading="lazy"
+                        >
+                    </div>
+                    <!-- Text content -->
+                    <div class="p-4 text-center bg-black">
+                        <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="${animeData.title} - Episode ${episode.episode}">${animeData.title} - Ep ${episode.episode}</h3>
+                        ${episode.title ? `<p class="text-sm text-green-300 truncate" title="${episode.title}">${episode.title}</p>` : ''}
+                        <p class="text-xs text-gray-400 mt-1">${episode.duration}</p>
+                    </div>
+                </a>
+            </div>
+        `;
+    }
+
+    /**
+     * Renders the pagination controls for the "Continue Watching" page.
+     * @param {number} totalItems The total number of unwatched episodes.
+     * @param {number} currentPage The current page number.
+     * @param {number} itemsPerPage The number of items per page.
+     */
+    function renderContinueWatchingPagination(totalItems, currentPage, itemsPerPage) {
+        const paginationContainer = document.getElementById('continue-watching-pagination');
+        if (!paginationContainer) return;
+
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        paginationContainer.innerHTML = ''; // Clear previous pagination
+        
+        if (totalPages <= 1) {
+            paginationContainer.classList.add('hidden');
+            return;
+        }
+
+        paginationContainer.classList.remove('hidden');
+
+        // Previous button
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Previous';
+        prevButton.className = `mb-2 px-5 py-3 btn-primary ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+        prevButton.disabled = currentPage === 1;
+        prevButton.onclick = () => {
+            if (currentPage > 1) {
+                currentContinueWatchingPage--;
+                renderContinueWatchingPage(currentContinueWatchingPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+        paginationContainer.appendChild(prevButton);
+
+        // Page numbers
+        const numVisiblePages = 4; // Max number of page buttons to show
+        let startPage = Math.max(1, currentPage - Math.floor(numVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + numVisiblePages - 1);
+
+        // Adjust startPage if endPage is constrained
+        if (endPage - startPage + 1 < numVisiblePages) {
+            startPage = Math.max(1, endPage - numVisiblePages + 1);
+        }
+
+        if (startPage > 1) {
+            const firstPageBtn = document.createElement('button');
+            firstPageBtn.textContent = '1';
+            firstPageBtn.className = `mb-2 px-5 py-3 btn-primary ${1 === currentPage ? 'bg-green-500 text-black font-bold' : 'bg-black border-2 border-green-400 text-green-400 font-semibold'}`;
+            firstPageBtn.onclick = () => {
+                currentContinueWatchingPage = 1;
+                renderContinueWatchingPage(currentContinueWatchingPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            paginationContainer.appendChild(firstPageBtn);
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.className = 'mb-2 px-4 py-2 text-gray-500';
+                paginationContainer.appendChild(ellipsis);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.textContent = i;
+            pageButton.className = `mb-2 px-5 py-3 ${i === currentPage ? 'bg-green-500 text-black font-bold' : 'bg-black border-2 border-green-400 text-green-400 font-semibold'}`;
+            pageButton.onclick = () => {
+                currentContinueWatchingPage = i;
+                renderContinueWatchingPage(currentContinueWatchingPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            paginationContainer.appendChild(pageButton);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.className = 'mb-2 px-4 py-2 text-gray-500';
+                paginationContainer.appendChild(ellipsis);
+            }
+            const lastPageBtn = document.createElement('button');
+            lastPageBtn.textContent = totalPages;
+            lastPageBtn.className = `mb-2 px-5 py-3 btn-primary ${totalPages === currentPage ? 'bg-green-500 text-black font-bold' : 'bg-black border-2 border-green-400 text-green-400 font-semibold'}`;
+            lastPageBtn.onclick = () => {
+                currentContinueWatchingPage = totalPages;
+                renderContinueWatchingPage(currentContinueWatchingPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            paginationContainer.appendChild(lastPageBtn);
+        }
+
+        // Next button
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.className = `mb-2 px-5 py-3 btn-primary ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.onclick = () => {
+            if (currentPage < totalPages) {
+                currentContinueWatchingPage++;
+                renderContinueWatchingPage(currentContinueWatchingPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+        paginationContainer.appendChild(nextButton);
+    }
+
+
+    /**
+     * Renders the "Continue Watching" page content.
+     * Fetches unwatched episodes for bookmarked anime, handling pagination.
+     * @param {number} page The current page number to render. Defaults to 1.
+     */
+    async function renderContinueWatchingPage(page = 1) {
+        currentContinueWatchingPage = page; // Update global page state
+        const continueWatchingListContainer = document.getElementById('continue-watching-list');
+        const loadingMessageDiv = document.getElementById('loading-unwatched-message');
+        const noUnwatchedMessageDiv = document.getElementById('no-unwatched-message');
+        const errorMessageDiv = document.getElementById('continue-watching-error-message');
+        const errorTextSpan = document.getElementById('continue-watching-error-text');
+        const paginationContainer = document.getElementById('continue-watching-pagination');
+
+
+        if (!continueWatchingListContainer || !loadingMessageDiv || !noUnwatchedMessageDiv || !errorMessageDiv || !errorTextSpan || !paginationContainer) {
+            return;
+        }
+
+        // Show loading, hide others
+        loadingMessageDiv.classList.remove('hidden');
+        noUnwatchedMessageDiv.classList.add('hidden');
+        errorMessageDiv.classList.add('hidden');
+        paginationContainer.classList.add('hidden'); // Hide pagination during loading
+        continueWatchingListContainer.innerHTML = ''; // Clear previous content
+
+        const bookmarks = getBookmarkData();
+        const watchedEpisodes = getWatchedEpisodesData();
+        
+        // Fetch all unwatched episodes only once if not already fetched
+        if (allUnwatchedEpisodes.length === 0 || page === 1) { // Re-fetch on first load or if list is empty
+            let tempAllUnwatched = [];
+            let hasFetchError = false; // Track errors during fetching
+
+            if (bookmarks.length === 0) {
+                loadingMessageDiv.classList.add('hidden');
+                noUnwatchedMessageDiv.classList.remove('hidden');
+                noUnwatchedMessageDiv.querySelector('p:first-of-type').textContent = "No anime bookmarked yet!";
+                noUnwatchedMessageDiv.querySelector('p:last-of-type').textContent = "Bookmark some anime to start tracking your progress.";
+                return;
+            }
+
+            for (const anime of bookmarks) {
+                let currentPageForAnime = 1;
+                let lastPageForAnime = 1;
+                let allEpisodesForThisAnime = [];
+
+                try {
+                    do {
+                        const response = await fetch(`/api/anime-episodes/${anime.session_id}?page=${currentPageForAnime}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+
+                        allEpisodesForThisAnime = allEpisodesForThisAnime.concat(data.episodes || []);
+                        lastPageForAnime = data.pagination.last_page || 1;
+                        currentPageForAnime++;
+
+                    } while (currentPageForAnime <= lastPageForAnime);
+
+                    const watchedForThisAnime = watchedEpisodes[anime.session_id] || [];
+
+                    const unwatchedForThisAnime = allEpisodesForThisAnime.filter(episode => 
+                        !watchedForThisAnime.includes(episode.session)
+                    );
+
+                    unwatchedForThisAnime.forEach(episode => {
+                        tempAllUnwatched.push({
+                            episodeData: episode,
+                            animeData: anime 
+                        });
+                    });
+
+                } catch (error) {
+                    console.error(`Error fetching all episodes for bookmarked anime ${anime.title} (${anime.session_id}):`, error);
+                    hasFetchError = true;
+                    // Only show one error message for the first error encountered, or append if multiple
+                    if (errorTextSpan.textContent === '') {
+                        errorTextSpan.textContent = `Could not load all episodes for "${anime.title}". Please try again later.`;
+                    } else {
+                        errorTextSpan.textContent += ` Also, failed for "${anime.title}".`;
+                    }
+                    errorMessageDiv.classList.remove('hidden');
+                }
+            }
+            allUnwatchedEpisodes = tempAllUnwatched; // Store the full list
+            if (hasFetchError) {
+                errorMessageDiv.classList.remove('hidden');
+            }
+        }
+
+        loadingMessageDiv.classList.add('hidden'); 
+
+        if (allUnwatchedEpisodes.length > 0) {
+            // Sort the full list before pagination
+            allUnwatchedEpisodes.sort((a, b) => {
+                const animeTitleA = a.animeData.title.toLowerCase();
+                const animeTitleB = b.animeData.title.toLowerCase();
+                if (animeTitleA < animeTitleB) return -1;
+                if (animeTitleA > animeTitleB) return 1;
+                
+                const episodeNumA = parseInt(a.episodeData.episode, 10);
+                const episodeNumB = parseInt(b.episodeData.episode, 10);
+                return episodeNumA - episodeNumB;
+            });
+
+            // Apply pagination to the sorted list
+            const startIndex = (page - 1) * ITEMS_PER_PAGE_CONTINUE_WATCHING;
+            const endIndex = startIndex + ITEMS_PER_PAGE_CONTINUE_WATCHING;
+            const episodesToRender = allUnwatchedEpisodes.slice(startIndex, endIndex);
+
+            continueWatchingListContainer.innerHTML = episodesToRender.map(item => 
+                renderEpisodeCardForTracking(item.episodeData, item.animeData)
+            ).join('');
+
+            // Re-initialize watched status for newly rendered cards
+            continueWatchingListContainer.querySelectorAll('.watched-icon').forEach(iconElement => {
+                const animeSessionId = iconElement.dataset.animeSessionId;
+                const episodeSessionId = iconElement.dataset.episodeSessionId;
+                if (animeSessionId && episodeSessionId) {
+                    renderEpisodeWatchedStatus(iconElement, animeSessionId, episodeSessionId);
+                }
+            });
+
+            renderContinueWatchingPagination(allUnwatchedEpisodes.length, currentContinueWatchingPage, ITEMS_PER_PAGE_CONTINUE_WATCHING);
+
+        } else if (!hasError) {
+            noUnwatchedMessageDiv.classList.remove('hidden');
+            noUnwatchedMessageDiv.querySelector('p:first-of-type').textContent = "You're all caught up!";
+            noUnwatchedMessageDiv.querySelector('p:last-of-type').textContent = "No unwatched episodes from your bookmarked anime.";
+        }
+    }
+
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
@@ -418,6 +904,16 @@
             }
         });
 
+        // Initialize watched status for all existing watched icons on the page (episode_selection.html)
+        document.querySelectorAll('.watched-icon').forEach(iconElement => {
+            const animeSessionId = iconElement.dataset.animeSessionId;
+            const episodeSessionId = iconElement.dataset.episodeSessionId;
+            if (animeSessionId && episodeSessionId) {
+                renderEpisodeWatchedStatus(iconElement, animeSessionId, episodeSessionId);
+            }
+        });
+
+
         // Event delegation for bookmark toggling (for dynamically added elements)
         document.addEventListener('click', (event) => {
             const bookmarkBtn = event.target.closest('.bookmark-icon');
@@ -444,7 +940,49 @@
                 };
                 toggleBookmark(bookmarkBtn, animeData); // Pass the actual button element
             }
+
+            // Event delegation for watched episode toggling
+            const watchedBtn = event.target.closest('.watched-icon');
+            if (watchedBtn) {
+                event.stopPropagation();
+                event.preventDefault();
+
+                const animeSessionId = watchedBtn.dataset.animeSessionId;
+                const episodeSessionId = watchedBtn.dataset.episodeSessionId;
+                
+                if (animeSessionId && episodeSessionId) {
+                    toggleEpisodeWatched(watchedBtn, animeSessionId, episodeSessionId);
+                } else {
+                    console.error("Missing data for watched episode toggle.");
+                }
+            }
         });
+
+        // Event listener for "Mark All Watched" button
+        const markAllWatchedBtn = document.getElementById('markAllWatchedBtn');
+        if (markAllWatchedBtn) {
+            markAllWatchedBtn.addEventListener('click', () => {
+                const animeSessionId = markAllWatchedBtn.dataset.animeSessionId;
+                if (animeSessionId) {
+                    markAllEpisodesWatchedForAnime(animeSessionId);
+                } else {
+                    console.error("Anime session ID not found for 'Mark All Watched' button.");
+                }
+            });
+        }
+
+        // Event listener for "Unmark All Watched" button
+        const unmarkAllWatchedBtn = document.getElementById('unmarkAllWatchedBtn');
+        if (unmarkAllWatchedBtn) {
+            unmarkAllWatchedBtn.addEventListener('click', () => {
+                const animeSessionId = markAllWatchedBtn.dataset.animeSessionId; // Use the same data-anime-session-id
+                if (animeSessionId) {
+                    unmarkAllEpisodesWatchedForAnime(animeSessionId);
+                } else {
+                    console.error("Anime session ID not found for 'Unmark All Watched' button.");
+                }
+            });
+        }
 
 
         // Event delegation for opening episode options modal (for dynamically added elements)
@@ -479,6 +1017,21 @@
         // For bookmarks.html
         if (document.getElementById('bookmark-list')) {
             renderBookmarksPage();
+        }
+        // For episode_selection.html (to apply watched status on load)
+        if (document.querySelector('.episode-card')) {
+            document.querySelectorAll('.episode-card').forEach(card => {
+                const watchedIcon = card.querySelector('.watched-icon');
+                const animeSessionId = card.dataset.animeSessionId;
+                const episodeSessionId = card.dataset.episodeSessionId;
+                if (watchedIcon && animeSessionId && episodeSessionId) {
+                    renderEpisodeWatchedStatus(watchedIcon, animeSessionId, episodeSessionId);
+                }
+            });
+        }
+        // For continue_watching.html
+        if (document.getElementById('continue-watching-list')) {
+            renderContinueWatchingPage(currentContinueWatchingPage);
         }
     });
 
