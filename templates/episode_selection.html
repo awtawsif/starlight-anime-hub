@@ -1,176 +1,155 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Episodes - {{ anime_title }} | {{ config.WEBSITE_TITLE }}</title>
-    <meta name="description" content="Episodes for {{ anime_title }}. {{ config.WEBSITE_DESCRIPTION }}">
-    <meta name="keywords" content="{{ config.WEBSITE_KEYWORDS }}, {{ anime_title | lower | replace(' ', ', ') }}, episodes">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-</head>
+{% block title %}Episodes - {{ anime_title }} | {{ config.WEBSITE_TITLE }}{% endblock %}
+{% block meta_description %}Episodes for {{ anime_title }}. {{ config.WEBSITE_DESCRIPTION }}{% endblock %}
+{% block meta_keywords %}{{ config.WEBSITE_KEYWORDS }}, {{ anime_title | lower | replace(' ', ', ') }}, episodes{% endblock %}
 
-<body class="bg-black text-green-400 font-mono">
-
-    <!-- Navigation Bar -->
-    {% include 'navbar.html' %}
-
-    <div class="container mx-auto px-4 pt-8 md:pt-12 flex-grow flex flex-col">
-
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
-                EPISODES FOR: <span class="text-green-300"><a href="{{ url_for('main.anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}">{{ anime_title }}</a></span>
-            </h1>
-            <p class="text-lg text-green-300 font-light mb-4 max-w-xl mx-auto">
-                Select an episode for download options. Mark watched episodes to track your progress!
-            </p>
-            <!-- New Mark All/Unmark All Buttons -->
-            <div class="flex justify-center space-x-4 mt-6">
-                <button id="markAllWatchedBtn" 
-                        class="btn-primary px-6 py-3 text-lg font-semibold"
-                        data-anime-session-id="{{ anime_session_id }}">
-                    Mark All
-                </button>
-                <button id="unmarkAllWatchedBtn" 
-                        class="btn-primary px-6 py-3 text-lg font-semibold bg-gray-700 hover:bg-gray-600 border-gray-700 hover:border-gray-600">
-                    Unmark All
-                </button>
-            </div>
-        </header>
-
-        <main class="flex-grow">
-            {% if error_message %}
-            <div class="text-center py-12 bg-red-900 border border-red-700 text-white">
-                <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
-                <p class="text-red-200 text-md">{{ error_message }}</p>
-            </div>
-            {% elif episodes %}
-            <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
-                {% for episode in episodes %}
-                <div class="episode-card group block cursor-pointer relative"
-                   data-anime-session-id="{{ anime_session_id }}"
-                   data-anime-title="{{ anime_title }}"
-                   data-episode-session-id="{{ episode.session }}"
-                   data-episode-number="{{ episode.episode }}"
-                > 
-                    <!-- Watched Icon -->
-                    <button
-                        class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
-                        title="Mark as Watched"
-                        data-anime-session-id="{{ anime_session_id }}"
-                        data-episode-session-id="{{ episode.session }}"
-                    >
-                        <!-- Default SVG for unwatched state (will be updated by JS) -->
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
-
-                    <!-- Image container - wrapped in an anchor for main click behavior -->
-                    <a href="javascript:void(0);" 
-                       class="block w-full h-full"
-                       data-anime-session-id="{{ anime_session_id }}"
-                       data-anime-title="{{ anime_title }}"
-                       data-episode-session-id="{{ episode.session }}"
-                       data-episode-number="{{ episode.episode }}"
-                    >
-                        <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
-                            <img 
-                                src="{{ url_for('main.proxy_image', url=episode.snapshot) }}" 
-                                alt="Snapshot for Episode {{ episode.episode }}" 
-                                class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
-                                onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
-                                loading="lazy"
-                            >
-                        </div>
-                        <!-- Text content -->
-                        <div class="p-4 text-center bg-black">
-                            <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
-                            {% if episode.title %}
-                            <p class="text-sm text-green-300 truncate" title="{{ episode.title }}">{{ episode.title }}</p>
-                            {% endif %}
-                            <p class="text-xs text-gray-400 mt-1">{{ episode.duration }}</p>
-                        </div>
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% if pagination.last_page > 1 %}
-                <div class="flex justify-center mt-12 space-x-3 flex-wrap">
-                    {% set current_page = pagination.current_page %}
-                    {% set last_page = pagination.last_page %}
-                    {% set anime_session_id = anime_session_id %}
-                    {% set anime_title_for_url = anime_title %}
-
-                    {# Page Numbers #}
-                    {% set num_visible_pages = 4 %}
-                    {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
-                    {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
-
-                    {# Adjust start_page if end_page is constrained #}
-                    {% if end_page - start_page + 1 < num_visible_pages %}
-                        {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
-                    {% endif %}
-
-                    {# First Page Link #}
-                    {% if start_page > 1 %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-black border-2 border-green-400 text-green-400 font-semibold">1</a>
-                        {% if start_page > 2 %}
-                            <span class="mb-2 px-4 py-2 text-gray-500">...</span>
-                        {% endif %}
-                    {% endif %}
-
-                    {# Page numbers #}
-                    {% for p in range(start_page, end_page + 1) %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 {% if p == current_page %} bg-green-500 text-black font-bold {% else %} bg-black border-2 border-green-400 text-green-400 font-semibold {% endif %}">
-                            {{ p }}
-                        </a>
-                    {% endfor %}
-
-                    {# Last Page Link #}
-                    {% if end_page < last_page %}
-                        {% if end_page < last_page - 1 %}
-                            <span class="mb-2 px-4 py-2 text-gray-500">...</span>
-                        {% endif %}
-                        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold">{{ last_page }}</a>
-                    {% endif %}
-                </div>
-            {% endif %}
-
-            {% else %}
-            <div class="text-center py-16 text-green-400">
-                <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
-                </svg>
-                <h3 class="mt-2 text-xl font-medium text-green-400">No episodes detected</h3>
-                <p class="mt-2 text-md text-green-300">The database found no episodes for this anime.</p>
-            </div>
-            {% endif %}
-        </main>
+{% block content %}
+<header class="text-center mb-12">
+    <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+        EPISODES FOR: <span class="text-green-300"><a href="{{ url_for('main.anime_detail', anime_session_id=anime_session_id, anime_title=anime_title) }}">{{ anime_title }}</a></span>
+    </h1>
+    <p class="text-lg text-green-300 font-light mb-4 max-w-xl mx-auto">
+        Select an episode for download options. Mark watched episodes to track your progress!
+    </p>
+    <!-- New Mark All/Unmark All Buttons -->
+    <div class="flex justify-center space-x-4 mt-6">
+        <button id="markAllWatchedBtn" 
+                class="btn-primary px-6 py-3 text-lg font-semibold"
+                data-anime-session-id="{{ anime_session_id }}">
+            Mark All
+        </button>
+        <button id="unmarkAllWatchedBtn" 
+                class="btn-primary px-6 py-3 text-lg font-semibold bg-gray-700 hover:bg-gray-600 border-gray-700 hover:border-gray-600">
+            Unmark All
+        </button>
     </div>
+</header>
 
-    <!-- Download Links Modal -->
-    <div id="downloadModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
-        <div class="bg-black border-2 border-green-400 p-8 pr-12 w-11/12 max-w-md mx-auto relative modal-content">
-            <button class="absolute top-4 right-4 text-green-400 hover:text-white focus:outline-none">
-                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+<main class="flex-grow">
+    {% if error_message %}
+    <div class="text-center py-12 bg-red-900 border border-red-700 text-white">
+        <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
+        <p class="text-red-200 text-md">{{ error_message }}</p>
+    </div>
+    {% elif episodes %}
+    <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
+        {% for episode in episodes %}
+        <div class="episode-card group block cursor-pointer relative"
+           data-anime-session-id="{{ anime_session_id }}"
+           data-anime-title="{{ anime_title }}"
+           data-episode-session-id="{{ episode.session }}"
+           data-episode-number="{{ episode.episode }}"
+        > 
+            <!-- Watched Icon -->
+            <button
+                class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
+                title="Mark as Watched"
+                data-anime-session-id="{{ anime_session_id }}"
+                data-episode-session-id="{{ episode.session }}"
+            >
+                <!-- Default SVG for unwatched state (will be updated by JS) -->
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </button>
-            <h3 id="modalTitle" class="text-2xl font-bold text-green-400 mb-6 text-center"></h3>
-            <div id="downloadLinks" class="space-y-4">
-                <p id="loadingMessage" class="text-center text-green-300 text-lg">Summoning download links...</p>
-                <div id="noLinksFound" class="text-center text-gray-400 hidden">No download links found for this episode.</div>
-            </div>
-            <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
+
+            <!-- Image container - wrapped in an anchor for main click behavior -->
+            <a href="javascript:void(0);" 
+               class="block w-full h-full"
+               data-anime-session-id="{{ anime_session_id }}"
+               data-anime-title="{{ anime_title }}"
+               data-episode-session-id="{{ episode.session }}"
+               data-episode-number="{{ episode.episode }}"
+            >
+                <div class="relative w-full aspect-video overflow-hidden flex-shrink-0">
+                    <img 
+                        src="{{ url_for('main.proxy_image', url=episode.snapshot) }}" 
+                        alt="Snapshot for Episode {{ episode.episode }}" 
+                        class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                        onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
+                        loading="lazy"
+                    >
+                </div>
+                <!-- Text content -->
+                <div class="p-4 text-center bg-black">
+                    <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="Episode {{ episode.episode }}">Episode {{ episode.episode }}</h3>
+                    {% if episode.title %}
+                    <p class="text-sm text-green-300 truncate" title="{{ episode.title }}">{{ episode.title }}</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-400 mt-1">{{ episode.duration }}</p>
+                </div>
+            </a>
         </div>
+        {% endfor %}
     </div>
 
-    <!-- Consolidated JavaScript file -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
+    {% if pagination.last_page > 1 %}
+        <div class="flex justify-center mt-12 space-x-3 flex-wrap">
+            {% set current_page = pagination.current_page %}
+            {% set last_page = pagination.last_page %}
+            {% set anime_session_id = anime_session_id %}
+            {% set anime_title_for_url = anime_title %}
 
-</html>
+            {# Page Numbers #}
+            {% set num_visible_pages = 4 %}
+            {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
+            {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
+
+            {# Adjust start_page if end_page is constrained #}
+            {% if end_page - start_page + 1 < num_visible_pages %}
+                {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
+            {% endif %}
+
+            {# First Page Link #}
+            {% if start_page > 1 %}
+                <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=1) }}" class="mb-2 px-4 py-2 bg-black border-2 border-green-400 text-green-400 font-semibold">1</a>
+                {% if start_page > 2 %}
+                    <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                {% endif %}
+            {% endif %}
+
+            {# Page numbers #}
+            {% for p in range(start_page, end_page + 1) %}
+                <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=p) }}" class="mb-2 px-5 py-3 {% if p == current_page %} bg-green-500 text-black font-bold {% else %} bg-black border-2 border-green-400 text-green-400 font-semibold {% endif %}">
+                    {{ p }}
+                </a>
+            {% endfor %}
+
+            {# Last Page Link #}
+            {% if end_page < last_page %}
+                {% if end_page < last_page - 1 %}
+                    <span class="mb-2 px-4 py-2 text-gray-500">...</span>
+                {% endif %}
+                <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title_for_url, page=last_page) }}" class="mb-2 px-5 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold">{{ last_page }}</a>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-16 text-green-400">
+        <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="mt-2 text-xl font-medium text-green-400">No episodes detected</h3>
+        <p class="mt-2 text-md text-green-300">The database found no episodes for this anime.</p>
+    </div>
+    {% endif %}
+</main>
+{% endblock %}
+
+{% block modals %}
+<div id="downloadModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
+    <div class="bg-black border-2 border-green-400 p-8 pr-12 w-11/12 max-w-md mx-auto relative modal-content">
+        <button class="absolute top-4 right-4 text-green-400 hover:text-white focus:outline-none">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <h3 id="modalTitle" class="text-2xl font-bold text-green-400 mb-6 text-center"></h3>
+        <div id="downloadLinks" class="space-y-4">
+            <p id="loadingMessage" class="text-center text-green-300 text-lg">Summoning download links...</p>
+            <div id="noLinksFound" class="text-center text-gray-400 hidden">No download links found for this episode.</div>
+        </div>
+        <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
+    </div>
+</div>
+{% endblock %}
