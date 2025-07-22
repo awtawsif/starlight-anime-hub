@@ -5,25 +5,12 @@
 {% block content %}
 <!-- Initial Main Content Header for Airing or Search Results -->
 <header class="text-center mb-12">
-    {% if search_performed %}
-        <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
-            SEARCH RESULTS
-        </h1>
-        <p class="text-lg text-green-300 font-light max-w-2xl mx-auto">
-            {% if results %}
-                Showing {{ results|length }} results for "<span class="text-green-300">{{ search_query }}</span>"
-            {% else %}
-                No results found for "<span class="text-green-300">{{ search_query }}</span>"
-            {% endif %}
-        </p>
-    {% else %}
-        <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
-            CURRENTLY AIRING ANIME
-        </h1>
-        <p class="text-lg text-green-300 mb-4 font-light max-w-2xl mx-auto">
-            Explore the latest releases.
-        </p>
-    {% endif %}
+    <h1 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 tracking-widest">
+        CURRENTLY AIRING ANIME
+    </h1>
+    <p class="text-lg text-green-300 mb-4 font-light max-w-2xl mx-auto">
+        Explore the latest releases.
+    </p>
 </header>
 
 <!-- Main Content Section -->
@@ -33,140 +20,83 @@
             <p class="text-red-300 font-semibold text-lg mb-2">Transmission Error:</p>
             <p class="text-red-200 text-md">{{ error_message }}</p>
         </div>
-    {% elif search_performed %}
-        {% if results %}
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
-                {% for item in results %}
-                    <a href="{{ url_for('main.anime_detail', anime_session_id=item.session, anime_title=item.title) }}" 
-                       class="anime-card block bg-black border-2 border-green-400">
-                        
-                        <!-- Image container -->
-                        <div class="relative w-full aspect-[2/3] overflow-hidden flex-shrink-0">
-                            <img 
-                                src="{{ url_for('main.proxy_image', url=item.poster) }}" 
-                                alt="Poster for {{ item.title }}" 
-                                class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
-                                onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/00ff00?text=No+Image+Available&font=vt323';"
-                                loading="lazy"
-                            >
-                            {% if item.score %}
-                            <div class="absolute top-3 right-3 z-20">
-                                <span class="inline-flex items-center px-2.5 py-1 bg-yellow-400 text-black font-bold text-xs border-2 border-yellow-400">
-                                    <svg class="w-4 h-4 mr-1 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.538 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.538-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z"></path></svg>
-                                    {{ "%.2f" | format(item.score) }}
-                                </span>
-                            </div>
-                            {% endif %}
-                            <!-- Bookmark Icon for Search Results -->
-                            <button 
-                                class="bookmark-icon absolute top-3 left-3 z-20 p-2 bg-black text-green-400 border-2 border-green-400"
-                                title="Add to Bookmarks"
-                                data-session-id="{{ item.session }}"
-                                data-anime-title="{{ item.title | e }}"
-                                data-poster="{{ item.poster | e }}"
-                                data-type="{{ item.type | e }}"
-                                data-year="{{ item.year | e }}"
-                            >
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                            </button>
-                        </div>
-                        
-                        <!-- Text content -->
-                        <div class="p-4 text-center bg-black">
-                            <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="{{ item.title }}">{{ item.title }}</h3>
-                            <p class="text-sm text-green-300 font-medium">{{ item.type }} &middot; {{ item.year }}</p>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-20 text-green-400">
-                <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                </svg>
-                <p class="text-xl">No results found for "{{ search_query }}".</p>
-                <p class="text-lg mt-2">Try a different search term or explore currently airing anime!</p>
-            </div>
-        {% endif %}
-    {% else %} {# This block now handles the airing anime homepage #}
-        {% if airing_anime %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
-                {% for item in airing_anime %}
-                    <a href="javascript:void(0);" 
-                       class="anime-card block bg-black border-2 border-green-400"
-                       data-anime-session-id="{{ item.anime_session }}"
-                       data-anime-title="{{ item.anime_title }}"
-                       data-episode-session-id="{{ item.session }}"
-                       data-episode-number="{{ item.episode }}"
-                    > 
-                        <!-- Image container -->
-                        <div class="relative w-full aspect-[6/3] overflow-hidden flex-shrink-0">
-                            <img 
-                                src="{{ url_for('main.proxy_image', url=item.snapshot) }}" 
-                                alt="Snapshot for {{ item.anime_title }} Episode {{ item.episode }}" 
-                                class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
-                                onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
-                                loading="lazy"
-                            >
-                        </div>
-                        
-                        <!-- Text content -->
-                        <div class="p-4 text-center bg-black">
-                            <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="{{ item.anime_title }}">{{ item.anime_title }}</h3>
-                            <p class="text-sm text-green-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }}</p>
-                            <p class="text-xs text-gray-400 mt-1">Aired: {{ item.created_at.split(' ')[0] }}</p>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
+    {% elif airing_anime %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
+            {% for item in airing_anime %}
+                <a href="javascript:void(0);" 
+                   class="anime-card block bg-black border-2 border-green-400"
+                   data-anime-session-id="{{ item.anime_session }}"
+                   data-anime-title="{{ item.anime_title }}"
+                   data-episode-session-id="{{ item.session }}"
+                   data-episode-number="{{ item.episode }}"
+                > 
+                    <!-- Image container -->
+                    <div class="relative w-full aspect-[6/3] overflow-hidden flex-shrink-0">
+                        <img 
+                            src="{{ url_for('main.proxy_image', url=item.snapshot) }}" 
+                            alt="Snapshot for {{ item.anime_title }} Episode {{ item.episode }}" 
+                            class="absolute inset-0 w-full h-full object-cover border-b-2 border-green-400"
+                            onerror="this.onerror=null;this.src='https://placehold.co/300x168/000000/00ff00?text=No+Snapshot+Available&font=vt323';"
+                            loading="lazy"
+                        >
+                    </div>
+                    
+                    <!-- Text content -->
+                    <div class="p-4 text-center bg-black">
+                        <h3 class="font-bold text-green-400 text-lg mb-1 truncate" title="{{ item.anime_title }}">{{ item.anime_title }}</h3>
+                        <p class="text-sm text-green-300 truncate" title="Episode {{ item.episode }}">Episode {{ item.episode }}</p>
+                        <p class="text-xs text-gray-400 mt-1">Aired: {{ item.created_at.split(' ')[0] }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
 
-            <!-- Pagination for Airing Anime -->
-            <div class="flex justify-center mt-12 space-x-3 flex-wrap">
-                {% set current_page = airing_pagination.current_page %}
-                {% set last_page = airing_pagination.last_page %}
+        <!-- Pagination for Airing Anime -->
+        <div class="flex justify-center mt-12 space-x-3 flex-wrap">
+            {% set current_page = airing_pagination.current_page %}
+            {% set last_page = airing_pagination.last_page %}
 
-                {# Page Numbers #}
-                {% set num_visible_pages = 4 %}
-                {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
-                {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
+            {# Page Numbers #}
+            {% set num_visible_pages = 4 %}
+            {% set start_page = [1, current_page - (num_visible_pages // 2)] | max %}
+            {% set end_page = [last_page, start_page + num_visible_pages - 1] | min %}
 
-                {% if end_page - start_page + 1 < num_visible_pages %}
-                    {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
+            {% if end_page - start_page + 1 < num_visible_pages %}
+                {% set start_page = [1, end_page - num_visible_pages + 1] | max %}
+            {% endif %}
+
+            {# First Page Link #}
+            {% if start_page > 1 %}
+                <a href="{{ url_for('main.home_page', page=1) }}" class="mb-2 px-4 py-2 bg-black border-2 border-green-400 text-green-400 font-semibold">1</a>
+                {% if start_page > 2 %}
+                    <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                 {% endif %}
+            {% endif %}
 
-                {# First Page Link #}
-                {% if start_page > 1 %}
-                    <a href="{{ url_for('main.search_page', page=1) }}" class="mb-2 px-4 py-2 bg-black border-2 border-green-400 text-green-400 font-semibold">1</a>
-                    {% if start_page > 2 %}
-                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
-                    {% endif %}
+            {% for p in range(start_page, end_page + 1) %}
+                <a href="{{ url_for('main.home_page', page=p) }}" class="mb-2 px-4 py-3 {% if p == current_page %} bg-green-500 text-black font-bold {% else %} bg-black border-2 border-green-400 text-green-400 font-semibold {% endif %}">
+                    {{ p }}
+                </a>
+            {% endfor %}
+
+            {# Last Page Link #}
+            {% if end_page < last_page %}
+                {% if end_page < last_page - 1 %}
+                    <span class="mb-2 px-4 py-2 text-gray-500">...</span>
                 {% endif %}
+                <a href="{{ url_for('main.home_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold">{{ last_page }}</a>
+            {% endif %}
+        </div>
 
-                {% for p in range(start_page, end_page + 1) %}
-                    <a href="{{ url_for('main.search_page', page=p) }}" class="mb-2 px-4 py-3 {% if p == current_page %} bg-green-500 text-black font-bold {% else %} bg-black border-2 border-green-400 text-green-400 font-semibold {% endif %}">
-                        {{ p }}
-                    </a>
-                {% endfor %}
-
-                {# Last Page Link #}
-                {% if end_page < last_page %}
-                    {% if end_page < last_page - 1 %}
-                        <span class="mb-2 px-4 py-2 text-gray-500">...</span>
-                    {% endif %}
-                    <a href="{{ url_for('main.search_page', page=last_page) }}" class="mb-2 px-4 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold">{{ last_page }}</a>
-                {% endif %}
-            </div>
-
-        {% else %}
-            <div class="text-center py-20 text-green-400">
-                <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                </svg>
-                <p class="text-xl">No currently airing anime to display.</p>
-                <p class="text-lg mt-2">The stars are quiet for now. Try searching for your favorites!</p>
-            </div>
-        {% endif %}
-    {% endif %} {# End of if search_performed / else airing anime #}
+    {% else %}
+        <div class="text-center py-20 text-green-400">
+            <svg class="mx-auto h-20 w-20 text-green-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 4 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+            <p class="text-xl">No currently airing anime to display.</p>
+            <p class="text-lg mt-2">The stars are quiet for now. Try searching for your favorites!</p>
+        </div>
+    {% endif %}
 </main>
 {% endblock %}
 

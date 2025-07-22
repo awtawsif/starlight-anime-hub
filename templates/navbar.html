@@ -1,7 +1,7 @@
 <nav id="navbar" class="bg-black border-b-2 border-green-400 p-4">
     <div class="container mx-auto flex justify-between items-center flex-wrap">
         <!-- Logo/Brand -->
-        <a href="{{ url_for('main.search_page') }}" class="text-green-400 text-3xl font-bold flex flex-col items-start lg:flex-row lg:items-center group">
+        <a href="{{ url_for('main.home_page') }}" class="text-green-400 text-3xl font-bold flex flex-col items-start lg:flex-row lg:items-center group">
             <span class="text-xl md:text-2xl lg:text-3xl">{{ config.WEBSITE_TITLE }}</span>
         </a>
 
@@ -21,7 +21,7 @@
             <a href="{{ url_for('main.continue_watching_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
                 Continue Watching
             </a>
-            <form method="post" action="{{ url_for('main.search_page') }}" class="flex items-center gap-2 bg-black border-2 border-green-400 p-2 w-full lg:w-auto">
+            <form method="post" action="{{ url_for('main.search') }}" class="flex items-center gap-2 bg-black border-2 border-green-400 p-2 w-full lg:w-auto">
                 <input
                     type="text"
                     name="query"
