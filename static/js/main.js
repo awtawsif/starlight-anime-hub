@@ -575,7 +575,7 @@
         const watchedIconTitle = isWatched ? "Mark as Unwatched" : "Mark as Watched";
 
         return `
-            <div class="episode-card group block bg-black border-2 border-green-400 cursor-pointer relative ${watchedClass}"
+            <div class="episode-card group block cursor-pointer relative ${watchedClass}"
                data-anime-session-id="${animeData.session_id}"
                data-anime-title="${animeData.title.replace(/"/g, '&quot;')}"
                data-episode-session-id="${episode.session}"
@@ -583,7 +583,7 @@
             > 
                 <!-- Watched Icon -->
                 <button
-                    class="watched-icon absolute top-3 right-3 z-20 p-2 rounded-full bg-black border-2 border-green-400 text-gray-400 hover:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black"
+                    class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
                     title="${watchedIconTitle}"
                     data-anime-session-id="${animeData.session_id}"
                     data-episode-session-id="${episode.session}"

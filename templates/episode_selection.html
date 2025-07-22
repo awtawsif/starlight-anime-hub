@@ -12,19 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-    <style>
-        /* Optional: Add some styling for watched episodes */
-        .episode-card.watched-episode .watched-icon {
-            color: #10B981; /* Tailwind green-500 */
-        }
-        .episode-card.watched-episode .watched-icon svg {
-            fill: currentColor; /* Ensure the checkmark is filled */
-        }
-        .episode-card.watched-episode {
-            border-color: #10B981; /* Green border for watched episodes */
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); /* Green glow */
-        }
-    </style>
 </head>
 
 <body class="bg-black text-green-400 font-mono">
@@ -46,11 +33,11 @@
                 <button id="markAllWatchedBtn" 
                         class="btn-primary px-6 py-3 text-lg font-semibold"
                         data-anime-session-id="{{ anime_session_id }}">
-                    Mark All Watched
+                    Mark All
                 </button>
                 <button id="unmarkAllWatchedBtn" 
                         class="btn-primary px-6 py-3 text-lg font-semibold bg-gray-700 hover:bg-gray-600 border-gray-700 hover:border-gray-600">
-                    Unmark All Watched
+                    Unmark All
                 </button>
             </div>
         </header>
@@ -64,7 +51,7 @@
             {% elif episodes %}
             <div class="grid grid-cols-2 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                 {% for episode in episodes %}
-                <div class="episode-card group block bg-black border-2 border-green-400 cursor-pointer relative"
+                <div class="episode-card group block cursor-pointer relative"
                    data-anime-session-id="{{ anime_session_id }}"
                    data-anime-title="{{ anime_title }}"
                    data-episode-session-id="{{ episode.session }}"
@@ -72,7 +59,7 @@
                 > 
                     <!-- Watched Icon -->
                     <button
-                        class="watched-icon absolute top-3 right-3 z-20 p-2 rounded-full bg-black border-2 border-green-400 text-gray-400 hover:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black"
+                        class="watched-icon absolute top-3 right-3 z-20 rounded-full text-gray-400 hover:text-green-300"
                         title="Mark as Watched"
                         data-anime-session-id="{{ anime_session_id }}"
                         data-episode-session-id="{{ episode.session }}"
