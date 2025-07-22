@@ -639,20 +639,6 @@
 
         paginationContainer.classList.remove('hidden');
 
-        // Previous button
-        const prevButton = document.createElement('button');
-        prevButton.textContent = 'Previous';
-        prevButton.className = `mb-2 px-5 py-3 btn-primary ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
-        prevButton.disabled = currentPage === 1;
-        prevButton.onclick = () => {
-            if (currentPage > 1) {
-                currentContinueWatchingPage--;
-                renderContinueWatchingPage(currentContinueWatchingPage);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        };
-        paginationContainer.appendChild(prevButton);
-
         // Page numbers
         const numVisiblePages = 4; // Max number of page buttons to show
         let startPage = Math.max(1, currentPage - Math.floor(numVisiblePages / 2));
@@ -666,7 +652,7 @@
         if (startPage > 1) {
             const firstPageBtn = document.createElement('button');
             firstPageBtn.textContent = '1';
-            firstPageBtn.className = `mb-2 px-5 py-3 btn-primary ${1 === currentPage ? 'bg-green-500 text-black font-bold' : 'bg-black border-2 border-green-400 text-green-400 font-semibold'}`;
+            firstPageBtn.className = `mb-2 px-5 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold`;
             firstPageBtn.onclick = () => {
                 currentContinueWatchingPage = 1;
                 renderContinueWatchingPage(currentContinueWatchingPage);
@@ -702,7 +688,7 @@
             }
             const lastPageBtn = document.createElement('button');
             lastPageBtn.textContent = totalPages;
-            lastPageBtn.className = `mb-2 px-5 py-3 btn-primary ${totalPages === currentPage ? 'bg-green-500 text-black font-bold' : 'bg-black border-2 border-green-400 text-green-400 font-semibold'}`;
+            lastPageBtn.className = `mb-2 px-5 py-3 bg-black border-2 border-green-400 text-green-400 font-semibold`;
             lastPageBtn.onclick = () => {
                 currentContinueWatchingPage = totalPages;
                 renderContinueWatchingPage(currentContinueWatchingPage);
@@ -710,20 +696,6 @@
             };
             paginationContainer.appendChild(lastPageBtn);
         }
-
-        // Next button
-        const nextButton = document.createElement('button');
-        nextButton.textContent = 'Next';
-        nextButton.className = `mb-2 px-5 py-3 btn-primary ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
-        nextButton.disabled = currentPage === totalPages;
-        nextButton.onclick = () => {
-            if (currentPage < totalPages) {
-                currentContinueWatchingPage++;
-                renderContinueWatchingPage(currentContinueWatchingPage);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        };
-        paginationContainer.appendChild(nextButton);
     }
 
 
