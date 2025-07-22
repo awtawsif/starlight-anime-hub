@@ -12,6 +12,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <style>
+        /* Optional: Add some styling for watched episodes */
+        .episode-card.watched-episode .watched-icon {
+            color: #10B981; /* Tailwind green-500 */
+        }
+        .episode-card.watched-episode .watched-icon svg {
+            fill: currentColor; /* Ensure the checkmark is filled */
+        }
+        .episode-card.watched-episode {
+            border-color: #10B981; /* Green border for watched episodes */
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); /* Green glow */
+        }
+    </style>
 </head>
 
 <body class="bg-black text-green-400 font-mono">
@@ -28,6 +41,18 @@
             <p class="text-lg text-green-300 font-light mb-4 max-w-xl mx-auto">
                 Select an episode for download options. Mark watched episodes to track your progress!
             </p>
+            <!-- New Mark All/Unmark All Buttons -->
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="markAllWatchedBtn" 
+                        class="btn-primary px-6 py-3 text-lg font-semibold"
+                        data-anime-session-id="{{ anime_session_id }}">
+                    Mark All Watched
+                </button>
+                <button id="unmarkAllWatchedBtn" 
+                        class="btn-primary px-6 py-3 text-lg font-semibold bg-gray-700 hover:bg-gray-600 border-gray-700 hover:border-gray-600">
+                    Unmark All Watched
+                </button>
+            </div>
         </header>
 
         <main class="flex-grow">
