@@ -6,7 +6,7 @@ It initializes the Flask application, configures logging, and registers
 the blueprints containing the application's routes.
 """
 
-from flask import Flask, url_for, request
+from flask import Flask, request
 import logging
 from routes import main_bp # Import the blueprint from your new routes.py
 from extensions import cache
@@ -34,4 +34,3 @@ def inject_config():
 if __name__ == '__main__':
     # For local development only. In production, use Gunicorn or another WSGI server.
     app.run(debug=True)
-

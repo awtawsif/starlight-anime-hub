@@ -173,7 +173,8 @@ def get_episode_downloads(anime_session_id, episode_session_id):
 @cache.cached(timeout=900, query_string=True)
 def proxy_image():
     """
-    Proxies images from the animepahe.ru domain to bypass CORS restrictions.
+    Proxies images from the animepahe.ru domain to bypass CORS restrictions,
+    with browser-side caching enabled.
     The image URL is passed as a query parameter.
     """
     image_url = request.args.get('url')
@@ -185,7 +186,13 @@ def proxy_image():
     if content is None:
         return "Error loading image", 500
     
-    return current_app.response_class(content, mimetype=mimetype)
+    # Create a response object
+    response = current_app.response_class(content, mimetype=mimetype)
+    
+    # Set browser caching headers (cache for 1 day)
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    
+    return response
 
 @main_bp.route('/bookmarks')
 def bookmarks_page():
