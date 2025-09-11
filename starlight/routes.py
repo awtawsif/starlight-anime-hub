@@ -6,8 +6,8 @@ It uses functions from api_handlers to fetch and process data.
 """
 
 from flask import Blueprint, request, render_template, jsonify, url_for, current_app
-from extensions import cache
-from api_handlers import (
+from .extensions import cache
+from .api_handlers import (
     fetch_anime_search_results,
     fetch_anime_details,
     fetch_episode_list,

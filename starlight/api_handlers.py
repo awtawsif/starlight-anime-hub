@@ -10,7 +10,7 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import logging
-from config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS, REDIRECT_HEADERS
+from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS, REDIRECT_HEADERS
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
