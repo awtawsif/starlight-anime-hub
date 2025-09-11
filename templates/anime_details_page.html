@@ -2,7 +2,8 @@
 
 {% block title %}{{ anime_details.title }} Details | {{ config.WEBSITE_TITLE }}{% endblock %}
 {% block meta_description %}{{ anime_details.synopsis | truncate(160) }}{% endblock %}
-{% block meta_keywords %}{{ config.WEBSITE_KEYWORDS }}, {{ anime_details.title | lower | replace(' ', ', ') }}{% endblock %}
+{% block meta_keywords %}{{ config.WEBSITE_KEYWORDS }}, {{ anime_details.title | lower | replace(' ', ', ') }}{%
+endblock %}
 
 {% block content %}
 <!-- Header Section -->
@@ -23,34 +24,32 @@
         <p class="text-red-200 text-md">{{ error_message }}</p>
     </div>
     {% else %}
-    <div class="bg-black border-2 border-green-400 p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8">
+    <div
+        class="bg-black border-2 border-green-400 p-6 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8">
         <div class="md:w-1/3 flex-shrink-0 relative">
-            <img
-                src="{{ url_for('main.proxy_image', url=anime_details.poster) }}"
-                alt="Poster for {{ anime_details.title }}"
-                class="w-full h-auto object-cover border-2 border-green-400"
+            <img src="{{ url_for('main.proxy_image', url=anime_details.poster) }}"
+                alt="Poster for {{ anime_details.title }}" class="w-full h-auto object-cover border-2 border-green-400"
                 onerror="this.onerror=null;this.src='https://placehold.co/300x450/000000/00ff00?text=No+Image+Available&font=vt323';"
-                loading="lazy"
-            >
+                loading="lazy">
             <!-- Bookmark Icon for Anime Details Page -->
             <button
                 class="bookmark-icon absolute top-3 left-3 z-20 p-2 bg-black text-green-400 border-2 border-green-400"
-                title="Add to Bookmarks"
-                data-session-id="{{ anime_session_id }}"
-                data-anime-title="{{ anime_details.title | e }}"
-                data-poster="{{ anime_details.poster | e }}"
-                data-type="{{ anime_details.type | e }}"
-                data-aired="{{ anime_details.aired | e }}" {# Changed data-year to data-aired #}
-            >
+                title="Add to Bookmarks" data-session-id="{{ anime_session_id }}"
+                data-anime-title="{{ anime_details.title | e }}" data-poster="{{ anime_details.poster | e }}"
+                data-type="{{ anime_details.type | e }}" data-aired="{{ anime_details.aired | e }}" {# Changed data-year
+                to data-aired #}>
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.545 4.757a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.545 4.757c.3.921-.755 1.683-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.565-1.838-.197-1.538-1.118l1.545-4.757a1 1 0 00-.363-1.118L2.92 8.72c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.545-4.757z">
+                    </path>
                 </svg>
             </button>
         </div>
 
         <div class="md:w-2/3 text-center md:text-left">
             <h2 class="text-4xl md:text-5xl font-bold text-green-400 mb-4 leading-tight">{{ anime_details.title }}</h2>
-            <p class="text-green-300 mb-6 leading-relaxed cursor-pointer" onclick="this.classList.toggle('line-clamp-5')">{{ anime_details.synopsis }}</p>
+            <p class="text-green-300 mb-6 leading-relaxed cursor-pointer line-clamp-5"
+                onclick="this.classList.toggle('line-clamp-5')">{{ anime_details.synopsis }}</p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8 text-lg">
                 <p><strong class="text-green-500">Type:</strong> {{ anime_details.type }}</p>
@@ -60,23 +59,29 @@
                 <p><strong class="text-green-500">Season:</strong> {{ anime_details.season }}</p>
                 <p><strong class="text-green-500">Studio:</strong> {{ anime_details.studio }}</p>
                 <p><strong class="text-green-500">Duration:</strong> {{ anime_details.duration }}</p>
-                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Genres:</strong> {{ anime_details.genre }}</p>
-                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Themes:</strong> {{ anime_details.theme }}</p>
+                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Genres:</strong> {{
+                    anime_details.genre }}</p>
+                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Themes:</strong> {{
+                    anime_details.theme }}</p>
                 {% if anime_details.synonyms and anime_details.synonyms != 'N/A' %}
-                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Synonyms:</strong> {{ anime_details.synonyms }}</p>
+                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Synonyms:</strong> {{
+                    anime_details.synonyms }}</p>
                 {% endif %}
                 {% if anime_details.japanese and anime_details.japanese != 'N/A' %}
-                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Japanese:</strong> {{ anime_details.japanese }}</p>
+                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Japanese:</strong> {{
+                    anime_details.japanese }}</p>
                 {% endif %}
                 {% if anime_details.demographic and anime_details.demographic != 'N/A' %}
-                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Demographic:</strong> {{ anime_details.demographic }}</p>
+                <p class="col-span-1 sm:col-span-2"><strong class="text-green-500">Demographic:</strong> {{
+                    anime_details.demographic }}</p>
                 {% endif %}
             </div>
 
             <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_details.title) }}"
-               class="inline-flex items-center px-8 py-4 bg-green-500 text-black font-bold text-xl border-2 border-green-500 btn-primary">
+                class="inline-flex items-center px-8 py-4 bg-green-500 text-black font-bold text-xl border-2 border-green-500 btn-primary">
                 <svg class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.132l-3.398-3.398m0 0a3.001 3.001 0 00-4.243 0l-1.414 1.414a3.001 3.001 0 000 4.243l3.398 3.398M14.752 11.132a3.001 3.001 0 000 4.243l1.414 1.414a3.001 3.001 0 004.243 0l3.398-3.398M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5M17.5 8.384L14.752 11.132M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14.752 11.132l-3.398-3.398m0 0a3.001 3.001 0 00-4.243 0l-1.414 1.414a3.001 3.001 0 000 4.243l3.398 3.398M14.752 11.132a3.001 3.001 0 000 4.243l1.414 1.414a3.001 3.001 0 004.243 0l3.398-3.398M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5M17.5 8.384L14.752 11.132M14.752 11.132L17.5 8.384M17.5 8.384L21.396 4.5" />
                 </svg>
                 View Episodes
             </a>
@@ -91,21 +96,28 @@
             {% for relation in anime_details.relations %}
             <div class="flex items-center bg-black border-2 border-green-400 p-4">
                 <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
-                    <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}">
-                        <img src="{{ url_for('main.proxy_image', url=relation.poster) }}" alt="Poster of {{ relation.title }}" class="w-full h-full object-cover border-2 border-green-400" onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';" loading="lazy">
+                    <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}"
+                        title="{{ relation.title }}">
+                        <img src="{{ url_for('main.proxy_image', url=relation.poster) }}"
+                            alt="Poster of {{ relation.title }}"
+                            class="w-full h-full object-cover border-2 border-green-400"
+                            onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';"
+                            loading="lazy">
                     </a>
                 </div>
                 <div class="flex-grow">
                     <h4 class="text-green-500 text-sm font-semibold mb-1">{{ relation.relation_type_label }}</h4>
                     <h5 class="text-lg font-bold text-green-400 leading-tight mb-1">
-                        <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}" title="{{ relation.title }}" class="hover:text-green-300">
+                        <a href="{{ url_for('main.anime_detail', anime_session_id=relation.session_id, anime_title=relation.title) }}"
+                            title="{{ relation.title }}" class="hover:text-green-300">
                             {{ relation.title }}
                         </a>
                     </h5>
                     <p class="text-green-300 text-sm">
                         <span class="font-medium">{{ relation.type }}</span> &middot;
                         {{ relation.episodes_status }}<br>
-                        {% if relation.season != 'N/A' %}<span class="text-gray-400">{{ relation.season }}</span>{% endif %}
+                        {% if relation.season != 'N/A' %}<span class="text-gray-400">{{ relation.season }}</span>{%
+                        endif %}
                     </p>
                 </div>
             </div>
@@ -122,13 +134,18 @@
             {% for rec in anime_details.recommendations %}
             <div class="flex items-center bg-black border-2 border-green-400 p-4">
                 <div class="flex-shrink-0 mr-4 w-16 h-24 sm:w-20 sm:h-30">
-                    <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}">
-                        <img src="{{ url_for('main.proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}" class="w-full h-full object-cover border-2 border-green-400" onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';" loading="lazy">
+                    <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}"
+                        title="{{ rec.title }}">
+                        <img src="{{ url_for('main.proxy_image', url=rec.poster) }}" alt="Poster of {{ rec.title }}"
+                            class="w-full h-full object-cover border-2 border-green-400"
+                            onerror="this.onerror=null;this.src='https://placehold.co/100x150/000000/00ff00?text=No+Img';"
+                            loading="lazy">
                     </a>
                 </div>
                 <div class="flex-grow">
                     <h5 class="text-lg font-bold text-green-400 leading-tight mb-1">
-                        <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}" title="{{ rec.title }}" class="hover:text-green-300">
+                        <a href="{{ url_for('main.anime_detail', anime_session_id=rec.session_id, anime_title=rec.title) }}"
+                            title="{{ rec.title }}" class="hover:text-green-300">
                             {{ rec.title }}
                         </a>
                     </h5>

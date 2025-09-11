@@ -111,12 +111,15 @@ def episode_selection_page(anime_session_id):
     
     # Get current page from query parameters, default to 1
     page = request.args.get('page', 1, type=int)
+    
+    # Get sort order from query parameters, default to 'episode_asc'
+    sort_order = request.args.get('sort', 'episode_asc')
 
     # Fetch episodes and pagination data using the handler
-    episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page)
+    episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page, sort_order)
     
     # Generate next/prev page URLs for the template
-    # Make sure to pass anime_title to ensure continuity in navigation
+    # Make sure to pass anime_title and sort_order to ensure continuity in navigation
     cp = pagination_data.get('current_page', 1)
     lp = pagination_data.get('last_page', 1)
     
@@ -124,9 +127,9 @@ def episode_selection_page(anime_session_id):
     pagination_data['prev_page_url'] = None
 
     if cp < lp:
-        pagination_data['next_page_url'] = url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1)
+        pagination_data['next_page_url'] = url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp + 1, sort=sort_order)
     if cp > 1:
-        pagination_data['prev_page_url'] = url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1)
+        pagination_data['prev_page_url'] = url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=cp - 1, sort=sort_order)
 
     return render_template(
         'episode_selection.html', 
@@ -134,7 +137,8 @@ def episode_selection_page(anime_session_id):
         episodes=episodes, 
         error_message=error_message,
         anime_title=anime_title, # Pass the fetched or default anime_title
-        pagination=pagination_data # Pass pagination data to the template
+        pagination=pagination_data, # Pass pagination data to the template
+        current_sort_order=sort_order # Pass current sort order to the template
     )
 
 # New API endpoint to fetch episodes as JSON

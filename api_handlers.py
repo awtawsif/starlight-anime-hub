@@ -259,13 +259,14 @@ def fetch_anime_details(anime_session_id):
 
     return anime_details, error_message
 
-def fetch_episode_list(anime_session_id, page):
+def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
     """
     Fetches a paginated list of episodes for a given anime session ID from the API.
 
     Args:
         anime_session_id (str): The unique session ID for the anime.
         page (int): The page number of episodes to fetch.
+        sort_order (str): The order to sort episodes ('episode_asc' or 'episode_desc').
 
     Returns:
         tuple: A tuple containing a list of episodes, pagination data, and an error message.
@@ -281,7 +282,7 @@ def fetch_episode_list(anime_session_id, page):
     try:
         params = {
             'm': 'release', 'id': anime_session_id,
-            'sort': 'episode_asc', 'page': page
+            'sort': sort_order, 'page': page
         }
         response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
         response.raise_for_status()
