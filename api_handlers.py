@@ -125,7 +125,7 @@ def fetch_anime_search_results(query):
 def fetch_anime_details(anime_session_id):
     """
     Fetches and parses full details for a given anime session ID by scraping
-    the animepahe.ru/anime/{anime_session_id} page.
+    the animepahe.si/anime/{anime_session_id} page.
 
     Args:
         anime_session_id (str): The unique session ID for the anime.
@@ -305,7 +305,7 @@ def fetch_episode_list(anime_session_id, page):
 
 def fetch_episode_download_links(anime_session_id, episode_session_id):
     """
-    Fetches the animepahe.ru play page for a specific episode,
+    Fetches the animepahe.si play page for a specific episode,
     parses it to find initial download links, then follows those links
     to extract the real kwik.si download URLs from embedded JavaScript.
 
@@ -317,12 +317,12 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
         tuple: A tuple containing a list of download links (dict) and an error message.
                Returns ([], error_message) on failure, (download_links, None) on success.
     """
-    play_url = f"https://animepahe.ru/play/{anime_session_id}/{episode_session_id}"
+    play_url = f"https://animepahe.si/play/{anime_session_id}/{episode_session_id}"
     final_downloads = []
     error_message = None
     
     try:
-        # 1. Fetch the animepahe.ru play page HTML
+        # 1. Fetch the animepahe.si play page HTML
         response_play_page = requests.get(play_url, headers=API_HEADERS, timeout=15)
         response_play_page.raise_for_status()
 
@@ -383,7 +383,7 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
 
 def proxy_image_content(image_url):
     """
-    Proxies images from the animepahe.ru domain to bypass CORS restrictions.
+    Proxies images from the animepahe.si domain to bypass CORS restrictions.
 
     Args:
         image_url (str): The URL of the image to proxy.
