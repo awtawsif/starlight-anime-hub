@@ -13,7 +13,8 @@ from .api_handlers import (
     fetch_episode_list,
     fetch_episode_download_links,
     proxy_image_content,
-    fetch_airing_anime # Import the new function
+    fetch_airing_anime, # Import the new function
+    fetch_final_download_link # Import the new function
 )
 import logging
 
@@ -172,6 +173,26 @@ def get_episode_downloads(anime_session_id, episode_session_id):
     if error_message:
         return jsonify({'error': error_message}), 500
     return jsonify({'downloads': downloads})
+
+@main_bp.route('/api/get-final-download', methods=['POST'])
+def get_final_download():
+    """
+    Receives a single kwik.si URL and uses the Streamline API to get the final direct download link.
+    """
+    data = request.get_json()
+    kwik_si_url = data.get('url')
+
+    if not kwik_si_url:
+        return jsonify({'error': 'No URL provided.'}), 400
+
+    final_link, error_message = fetch_final_download_link(kwik_si_url)
+
+    if error_message:
+        return jsonify({'error': error_message}), 500
+    if not final_link:
+        return jsonify({'error': 'Could not retrieve final download link.'}), 500
+    
+    return jsonify({'final_download': final_link})
 
 @main_bp.route('/proxy-image')
 @cache.cached(timeout=900, query_string=True)

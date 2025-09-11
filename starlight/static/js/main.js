@@ -438,12 +438,13 @@
         loadingMessage.classList.remove('hidden');
         noLinksFoundMessage.classList.add('hidden');
         errorMessage.classList.add('hidden');
-        downloadLinksContainer.innerHTML = '';
+        downloadLinksContainer.innerHTML = ''; // Clear previous content before showing loading
         downloadLinksContainer.appendChild(loadingMessage);
 
         openModal(downloadModal);
 
         try {
+            // 1. Fetch initial kwik.si links from your Flask backend
             const response = await fetch(`/api/episode-downloads/${animeSessionId}/${episodeSessionId}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -452,23 +453,80 @@
 
             loadingMessage.classList.add('hidden');
             if (data.downloads && data.downloads.length > 0) {
+                // 2. Display initial kwik.si links as clickable buttons
                 data.downloads.forEach(link => {
-                    const a = document.createElement('a');
-                    a.href = link.href;
-                    a.textContent = link.text;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    a.className = 'block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 transition-colors duration-100 shadow-md btn-primary';
-                    downloadLinksContainer.appendChild(a);
+                    const button = document.createElement('button');
+                    button.textContent = link.text; // e.g., "360p", "720p"
+                    button.className = 'block px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg text-center hover:bg-blue-700 transition-colors duration-100 shadow-md btn-primary';
+                    button.onclick = () => fetchFinalDownloadLink(link.href, link.text); // Pass the kwik.si URL and its text
+                    downloadLinksContainer.appendChild(button);
                 });
             } else {
                 noLinksFoundMessage.classList.remove('hidden');
             }
         } catch (error) {
-            console.error('Error fetching download links:', error);
+            console.error('Error fetching initial download links:', error);
             loadingMessage.classList.add('hidden');
-            errorMessage.textContent = 'Failed to load download links. Please check your connection or try again later.';
+            errorMessage.textContent = 'Failed to load resolution options. Please check your connection or try again later.';
             errorMessage.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Fetches the final direct download link for a selected kwik.si URL from the Flask backend.
+     * @param {string} kwikSiUrl The kwik.si URL selected by the user.
+     * @param {string} resolutionText The resolution text (e.g., "360p") for display.
+     */
+    async function fetchFinalDownloadLink(kwikSiUrl, resolutionText) {
+        if (!downloadModal || !downloadLinksContainer || !loadingMessage || !noLinksFoundMessage || !errorMessage) {
+            console.error("Download modal elements not found for final link fetch.");
+            return;
+        }
+
+        downloadLinksContainer.innerHTML = ''; // Clear resolution options
+        loadingMessage.classList.remove('hidden');
+        noLinksFoundMessage.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+        downloadLinksContainer.appendChild(loadingMessage);
+        downloadModalTitle.textContent = `Fetching Download...`;
+
+        try {
+            const response = await fetch('/api/get-final-download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: kwikSiUrl }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            loadingMessage.classList.add('hidden');
+            downloadLinksContainer.innerHTML = ''; // Clear loading message
+
+            if (data.final_download && data.final_download.href) {
+                // Directly initiate download
+                window.location.href = data.final_download.href;
+                downloadModalTitle.textContent = `Download Starting...`;
+                // Optionally, close the modal after a short delay or provide a message
+                setTimeout(() => {
+                    closeModal(downloadModal);
+                }, 2000); // Close after 2 seconds
+            } else {
+                noLinksFoundMessage.classList.remove('hidden');
+                downloadModalTitle.textContent = `No Download Link Found`; 
+            }
+
+        } catch (error) {
+            console.error('Error fetching final download link:', error);
+            loadingMessage.classList.add('hidden');
+            errorMessage.textContent = `Failed to get download link. Please try again later.`;
+            errorMessage.classList.remove('hidden');
+            downloadModalTitle.textContent = `Error Fetching Download`;
         }
     }
 

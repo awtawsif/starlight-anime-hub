@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:css": "npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify",
-    "watch:css": "npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --watch"
+    "build:css": "npx tailwindcss -i ./starlight/static/css/style.css -o ./starlight/static/css/tailwind.css --minify",
+    "watch:css": "npx tailwindcss -i ./starlight/static/css/style.css -o ./starlight/static/css/tailwind.css --watch"
   },
   "repository": {
     "type": "git",

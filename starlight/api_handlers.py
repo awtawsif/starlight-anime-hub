@@ -15,6 +15,57 @@ from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS, REDIRECT_HEA
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 
+STREAMLINE_DOWNLOAD_API_URL = "https://streamline-dl.onrender.com/download-links"
+
+def _fetch_streamline_download_links(kwik_si_url):
+    """
+    Sends a single kwik.si URL to the Streamline Download API to get a direct download link.
+
+    Args:
+        kwik_si_url (str): A single kwik.si link.
+
+    Returns:
+        tuple: A tuple containing the processed download link (dict) and an error message (str).
+               Returns ({}, error_message) on failure, (processed_link, None) on success.
+    """
+    processed_link = {}
+    error_message = None
+
+    if not kwik_si_url:
+        return {}, "No URL provided for Streamline API."
+
+    payload = {"urls": [kwik_si_url]}
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        logger.info(f"Sending single URL to Streamline Download API: {kwik_si_url}")
+        response = requests.post(STREAMLINE_DOWNLOAD_API_URL, json=payload, headers=headers, timeout=20)
+        response.raise_for_status()
+        streamline_data = response.json()
+
+        if streamline_data and isinstance(streamline_data, list) and len(streamline_data) > 0:
+            item = streamline_data[0]
+            if item.get('status') == 'success' and item.get('content') and item['content'].get('download_url'):
+                processed_link = {
+                    'text': item['content'].get('page_title', 'Download Link'),
+                    'href': item['content'].get('download_url')
+                }
+            else:
+                error_message = f"Streamline API returned non-success or missing download_url for {item.get('url')}: {item.get('error', 'Unknown error')}"
+                logger.warning(error_message)
+        else:
+            error_message = "Streamline API returned an empty or invalid response."
+            logger.warning(error_message)
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Streamline API Request Error for {kwik_si_url}: {e}")
+        error_message = f"Failed to get final download link from Streamline service: {e}"
+    except Exception as e:
+        logger.error(f"Unexpected error processing Streamline API response for {kwik_si_url}: {e}")
+        error_message = f"An unexpected error occurred while processing download link: {e}"
+
+    return processed_link, error_message
+
 def _parse_related_anime_card(card_row_element):
     """
     Parses a BeautifulSoup element representing a single anime card (div with row mx-n1)
@@ -319,7 +370,7 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
                Returns ([], error_message) on failure, (download_links, None) on success.
     """
     play_url = f"https://animepahe.si/play/{anime_session_id}/{episode_session_id}"
-    final_downloads = []
+    download_links = []
     error_message = None
     
     try:
@@ -365,7 +416,7 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
                                     found_kwik_link = match.group(0)
                                     
                         if found_kwik_link:
-                            final_downloads.append({'text': text, 'href': found_kwik_link})
+                            download_links.append({'text': text, 'href': found_kwik_link})
                     except requests.exceptions.RequestException as e:
                         logger.error(f"Error fetching redirect page {initial_href}: {e}")
                     except Exception as e:
@@ -380,7 +431,20 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
         logger.error(f"An unexpected error occurred parsing initial downloads ({play_url}): {e}")
         error_message = 'An unexpected error occurred while parsing initial downloads.'
 
-    return final_downloads, error_message
+    return download_links, error_message
+
+def fetch_final_download_link(kwik_si_url):
+    """
+    Fetches the final direct download link for a given kwik.si URL using the Streamline Download API.
+
+    Args:
+        kwik_si_url (str): The kwik.si URL to process.
+
+    Returns:
+        tuple: A tuple containing the final download link (dict) and an error message (str).
+               Returns ({}, error_message) on failure, (download_link, None) on success.
+    """
+    return _fetch_streamline_download_links(kwik_si_url)
 
 def proxy_image_content(image_url):
     """
