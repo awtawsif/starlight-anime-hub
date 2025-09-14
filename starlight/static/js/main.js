@@ -475,9 +475,8 @@
     /**
      * Fetches the final direct download link for a selected kwik.si URL from the Flask backend.
      * @param {string} kwikSiUrl The kwik.si URL selected by the user.
-     * @param {string} resolutionText The resolution text (e.g., "360p") for display.
      */
-    async function fetchFinalDownloadLink(kwikSiUrl, resolutionText) {
+    async function fetchFinalDownloadLink(kwikSiUrl) {
         if (!downloadModal || !downloadLinksContainer || !loadingMessage || !noLinksFoundMessage || !errorMessage) {
             console.error("Download modal elements not found for final link fetch.");
             return;
@@ -487,8 +486,9 @@
         loadingMessage.classList.remove('hidden');
         noLinksFoundMessage.classList.add('hidden');
         errorMessage.classList.add('hidden');
+        loadingMessage.textContent = 'Starting Download...';
         downloadLinksContainer.appendChild(loadingMessage);
-        downloadModalTitle.textContent = `Fetching Download...`;
+        downloadModalTitle.textContent = `Fetching Video...`;
 
         try {
             const response = await fetch('/api/get-final-download', {
@@ -511,11 +511,7 @@
             if (data.final_download && data.final_download.href) {
                 // Directly initiate download
                 window.location.href = data.final_download.href;
-                downloadModalTitle.textContent = `Download Starting...`;
-                // Optionally, close the modal after a short delay or provide a message
-                setTimeout(() => {
-                    closeModal(downloadModal);
-                }, 2000); // Close after 2 seconds
+                closeModal(downloadModal);
             } else {
                 noLinksFoundMessage.classList.remove('hidden');
                 downloadModalTitle.textContent = `No Download Link Found`; 
