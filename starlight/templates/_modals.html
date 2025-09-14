@@ -34,3 +34,23 @@
         <div id="errorMessage" class="text-center text-red-400 mt-6 hidden text-md"></div>
     </div>
 </div>
+
+<!-- Blackhole Episode Selection Modal -->
+<div id="episodeSelectionModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 modal-overlay hidden">
+    <div class="bg-black border-2 border-green-400 p-8 w-11/12 max-w-2xl mx-auto relative modal-content flex flex-col" style="max-height: 90vh;">
+        <button class="absolute top-4 right-4 text-green-400 hover:text-white focus:outline-none">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <h3 id="episodeSelectionModalTitle" class="text-2xl font-bold text-green-400 mb-6 text-center">Select Episodes</h3>
+        <div id="episodeList" class="flex-grow overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pr-4">
+            <!-- Episode checkboxes will be injected here -->
+        </div>
+        <div class="mt-6 flex justify-end gap-4">
+            <button id="selectAllEpisodes" class="px-5 py-3 bg-gray-600 text-white font-semibold text-center border-2 border-gray-600 hover:bg-gray-700">Select All</button>
+            <button id="deselectAllEpisodes" class="px-5 py-3 bg-gray-600 text-white font-semibold text-center border-2 border-gray-600 hover:bg-gray-700">Deselect All</button>
+            <button id="confirmEpisodeSelection" class="px-5 py-3 bg-green-500 text-black font-semibold text-center border-2 border-green-500 btn-primary">Confirm</button>
+        </div>
+    </div>
+</div>

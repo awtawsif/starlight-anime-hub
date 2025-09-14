@@ -39,7 +39,7 @@ def _fetch_streamline_download_links(kwik_si_url):
 
     try:
         logger.info(f"Sending single URL to Streamline Download API: {kwik_si_url}")
-        response = requests.post(STREAMLINE_DOWNLOAD_API_URL, json=payload, headers=headers, timeout=20)
+        response = requests.post(STREAMLINE_DOWNLOAD_API_URL, json=payload, headers=headers, timeout=45)
         response.raise_for_status()
         streamline_data = response.json()
 
@@ -51,8 +51,15 @@ def _fetch_streamline_download_links(kwik_si_url):
                     'href': item['content'].get('download_url')
                 }
             else:
-                error_message = f"Streamline API returned non-success or missing download_url for {item.get('url')}: {item.get('error', 'Unknown error')}"
-                logger.warning(error_message)
+                # Handle cases where status might be 'success' but no download_url is found
+                specific_error = "Unknown processing error"
+                if item.get('content') and item['content'].get('error'):
+                    specific_error = item['content']['error']
+                elif item.get('error'): # Fallback to top-level error
+                    specific_error = item['error']
+                
+                error_message = f"API did not provide a download link. Reason: {specific_error}"
+                logger.warning(f"Streamline API returned non-success or missing download_url for {item.get('url')}: {error_message}")
         else:
             error_message = "Streamline API returned an empty or invalid response."
             logger.warning(error_message)
@@ -510,3 +517,183 @@ def fetch_airing_anime(page):
         error_message = f"An unexpected error occurred while fetching airing anime: {e}"
 
     return airing_anime, pagination_data, error_message
+
+async def fetch_single_episode_download_link(anime_session_id, resolution, source, episode):
+    """
+    Fetches a final download link for a single episode.
+    """
+    episode_num = episode.get('number', 'N/A')
+    episode_session = episode.get('session')
+    
+    if not episode_session:
+        logger.warning(f"Skipping episode due to missing session: {episode}")
+        return None, "Missing episode session."
+
+    try:
+        logger.debug(f"Fetching download links for Ep. {episode_num} (Session: {episode_session})")
+        download_links, error = fetch_episode_download_links(anime_session_id, episode_session)
+        if error:
+            logger.error(f"Error fetching initial links for Ep. {episode_num}: {error}")
+            return None, error
+        
+        logger.debug(f"Found {len(download_links)} initial links for Ep. {episode_num}.")
+
+        for link in download_links:
+            link_text = link.get('text', '')
+            if resolution in link_text and (source == 'Any' or source in link_text):
+                logger.info(f"Found matching link for Ep. {episode_num}: '{link_text}'. Proceeding to fetch final link.")
+                final_link, error = fetch_final_download_link(link['href'])
+                if not error and final_link.get('href'):
+                    logger.info(f"Successfully fetched final link for Ep. {episode_num}.")
+                    return { "episode": episode['number'], "link": final_link['href'] }, None
+                else:
+                    logger.warning(f"Failed to get final link for Ep. {episode_num}. Error: {error}")
+        
+        no_match_error = f"No matching link found for Ep. {episode_num} with resolution '{resolution}' and source '{source}'."
+        logger.warning(no_match_error)
+        return None, no_match_error
+    except Exception as e:
+        unhandled_error = f"Unhandled exception in fetch_single_episode_download_link for episode {episode_num}: {e}"
+        logger.error(unhandled_error)
+        return None, unhandled_error
+
+async def fetch_batch_download_links(anime_session_id, resolution, source, episodes):
+    """
+    Fetches final download links for a list of episodes for a given anime.
+    """
+    import asyncio
+    
+    logger.info(f"Starting batch download fetch for anime {anime_session_id} with resolution '{resolution}', source '{source}' for {len(episodes)} episodes.")
+    
+    async def fetch_with_session(episode):
+        # This wrapper is needed if we were using aiohttp.ClientSession, but since
+        # the underlying functions use `requests`, we can call the async function directly.
+        return await fetch_single_episode_download_link(anime_session_id, resolution, source, episode)
+
+    tasks = [fetch_with_session(ep) for ep in episodes]
+    results = await asyncio.gather(*tasks)
+
+    # Filter out unsuccessful results
+    successful_links = [result[0] for result in results if result[0] is not None]
+    
+    logger.info(f"Batch download fetch completed. Successfully retrieved {len(successful_links)} out of {len(episodes)} links.")
+    return successful_links, None
+
+def fetch_available_resolutions_and_sources(anime_session_id):
+    """
+    Fetches available resolutions and sources by sampling the first and last episodes.
+    """
+    resolutions = set()
+    sources = set()
+    error_message = None
+
+    # Fetch the first page to get the first episode and pagination info
+    episodes, pagination_data, error = fetch_episode_list(anime_session_id, 1, 'episode_asc')
+    if error:
+        return [], [], error
+
+    if not episodes:
+        return [], [], "No episodes found for this anime."
+
+    episodes_to_check = []
+    if episodes:
+        episodes_to_check.append(episodes[0])
+
+    # If there's more than one page, fetch the last page to get the last episode
+    last_page = pagination_data.get('last_page', 1)
+    if last_page > 1:
+        last_page_episodes, _, error = fetch_episode_list(anime_session_id, last_page, 'episode_asc')
+        if not error and last_page_episodes:
+            episodes_to_check.append(last_page_episodes[-1])
+
+    for episode in episodes_to_check:
+        download_links, error = fetch_episode_download_links(anime_session_id, episode['session'])
+        if error:
+            continue # Skip this episode if there's an error
+
+        for link in download_links:
+            text = link.get('text', '')
+            print(text)
+            # Regex to capture resolution (e.g., 1080p) and source (e.g., SubsPlease)
+            match = re.search(r'(.*?)\s*·\s*(\d+p)', text)
+            print(match)
+            if match:
+                source = match.group(1)
+                # The source might contain multiple parts, we'll take the second group
+                resolutions.add(match.group(2))
+                sources.add(source)
+
+    return sorted(list(resolutions), reverse=True), sorted(list(sources)), None
+
+
+def fetch_common_resolutions_and_sources(anime_session_id, episodes):
+    """
+    Fetches available resolutions and sources that are common to all specified episodes.
+    """
+    logger.info(f"Fetching common resolutions and sources for anime {anime_session_id} across {len(episodes)} episodes.")
+    if not episodes:
+        logger.warning("No episodes provided to fetch resolutions and sources.")
+        return [], [], "No episodes provided to fetch resolutions and sources."
+
+    common_resolutions = None
+    common_sources = None
+    error_message = None
+
+    for i, episode in enumerate(episodes):
+        episode_session = episode.get('session')
+        episode_num = episode.get('number', 'N/A')
+
+        if not episode_session:
+            logger.warning(f"Skipping episode in common check due to missing session: {episode}")
+            continue
+
+        logger.debug(f"Processing Ep. {episode_num} (Session: {episode_session}) for common options.")
+        download_links, error = fetch_episode_download_links(anime_session_id, episode_session)
+
+        if error:
+            error_msg = f"Failed to fetch download links for Ep. {episode_num} (Session: {episode_session}): {error}"
+            logger.error(error_msg)
+            return [], [], error_msg
+
+        current_resolutions = set()
+        current_sources = set()
+
+        for link in download_links:
+            text = link.get('text', '')
+            match = re.search(r'(.*?)\s*·\s*(\d+p)', text)
+            if match:
+                source = match.group(1).strip()
+                resolution = match.group(2).strip()
+                current_resolutions.add(resolution)
+                current_sources.add(source)
+        
+        logger.debug(f"Ep. {episode_num} | Resolutions: {current_resolutions} | Sources: {current_sources}")
+
+        if common_resolutions is None:
+            common_resolutions = current_resolutions
+            common_sources = current_sources
+            logger.debug(f"Initialized common sets with Ep. {episode_num} options.")
+        else:
+            prev_res_count = len(common_resolutions)
+            prev_src_count = len(common_sources)
+            common_resolutions.intersection_update(current_resolutions)
+            common_sources.intersection_update(current_sources)
+            logger.debug(f"Intersection updated. Resolutions: {prev_res_count} -> {len(common_resolutions)}. Sources: {prev_src_count} -> {len(common_sources)}.")
+
+        if not common_resolutions or not common_sources:
+            logger.warning("Intersection resulted in empty set. Stopping early.")
+            break
+            
+    if common_resolutions is None:
+        common_resolutions = set()
+    if common_sources is None:
+        common_sources = set()
+
+    final_resolutions = sorted(list(common_resolutions), reverse=True)
+    final_sources = sorted(list(common_sources))
+    
+    logger.info(f"Finished fetching common options for anime {anime_session_id}. Found {len(final_resolutions)} resolutions and {len(final_sources)} sources.")
+    logger.debug(f"Final common resolutions: {final_resolutions}")
+    logger.debug(f"Final common sources: {final_sources}")
+
+    return final_resolutions, final_sources, None

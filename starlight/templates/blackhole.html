@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Blackhole - Starlight Anime Hub{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-8">
+    <h1 class="text-3xl font-bold text-white mb-6">Blackhole - Batch Downloader</h1>
+    
+    <div id="blackhole-anime-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Anime from localStorage will be injected here -->
+    </div>
+
+    <div id="no-anime-message" class="text-center py-12 text-gray-400" style="display: none;">
+        <p class="text-lg">Your Blackhole is empty.</p>
+        <p>Go to an anime's detail page and click "Add to Blackhole" to get started.</p>
+    </div>
+</div>
+
+{% include '_modals.html' %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const animeListContainer = document.getElementById('blackhole-anime-list');
+        const noAnimeMessage = document.getElementById('no-anime-message');
+        const episodeSelectionModal = document.getElementById('episodeSelectionModal');
+        const episodeSelectionTitle = document.getElementById('episodeSelectionModalTitle');
+        const episodeListContainer = document.getElementById('episodeList');
+        const confirmEpisodeSelectionBtn = document.getElementById('confirmEpisodeSelection');
+        const selectAllBtn = document.getElementById('selectAllEpisodes');
+        const deselectAllBtn = document.getElementById('deselectAllEpisodes');
+
+        let blackholeList = JSON.parse(localStorage.getItem('blackhole')) || [];
+        let currentAnimeForSelection = null;
+        let selectedEpisodesForAnime = {}; // Store selected episodes per anime session ID
+
+        function renderBlackholeList() {
+            animeListContainer.innerHTML = '';
+            if (blackholeList.length === 0) {
+                noAnimeMessage.style.display = 'block';
+            } else {
+                noAnimeMessage.style.display = 'none';
+                blackholeList.forEach((anime, index) => {
+                    const animeCard = document.createElement('div');
+                    animeCard.className = 'bg-black border-2 border-green-400 p-4 flex flex-col';
+                    animeCard.innerHTML = `
+                        <img src="/proxy-image?url=${encodeURIComponent(anime.poster)}" alt="Poster for ${anime.title}" class="w-full h-auto object-cover border-2 border-green-400 mb-4">
+                        <h2 class="text-xl font-bold text-green-400 mb-2">${anime.title}</h2>
+                        <p class="text-gray-400 mb-4">Total Episodes: ${anime.episodes}</p>
+                        
+                        <div class="mt-auto">
+                            <div class="download-form" data-session-id="${anime.sessionId}" data-index="${index}">
+                                <button class="select-episodes-btn w-full bg-blue-500 text-white font-bold py-2 px-4 border-2 border-blue-500 hover:bg-blue-600" data-session-id="${anime.sessionId}" data-anime-title="${anime.title}">
+                                    Select Episodes
+                                </button>
+                                <div id="options-container-${index}" class="mt-4"></div>
+                                <div class="download-links-container mt-4"></div>
+                            </div>
+                            <button class="remove-btn mt-4 w-full bg-red-500 text-white font-bold py-2 px-4 border-2 border-red-500 hover:bg-red-600" data-index="${index}">
+                                Remove
+                            </button>
+                        </div>
+                    `;
+                    animeListContainer.appendChild(animeCard);
+                });
+            }
+        }
+
+        async function openEpisodeSelectionModal(sessionId, animeTitle) {
+            currentAnimeForSelection = sessionId;
+            episodeSelectionTitle.textContent = `Select Episodes for ${animeTitle}`;
+            episodeListContainer.innerHTML = '<p class="text-yellow-400 col-span-full">Fetching episodes...</p>';
+            episodeSelectionModal.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/anime-episodes/${sessionId}`);
+                if (!response.ok) throw new Error('Failed to fetch episodes');
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                episodeListContainer.innerHTML = '';
+                data.episodes.forEach(ep => {
+                    const isChecked = selectedEpisodesForAnime[sessionId]?.some(selEp => selEp.session === ep.session);
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.innerHTML = `
+                        <label class="flex items-center space-x-2 text-white cursor-pointer">
+                            <input type="checkbox" value="${ep.session}" data-episode-number="${ep.episode}" class="form-checkbox bg-gray-800 border-green-400 text-green-500 h-5 w-5" ${isChecked ? 'checked' : ''}>
+                            <span>Ep ${ep.episode}</span>
+                        </label>
+                    `;
+                    episodeListContainer.appendChild(checkboxDiv);
+                });
+            } catch (error) {
+                episodeListContainer.innerHTML = `<p class="text-red-400 col-span-full">Error: ${error.message}</p>`;
+            }
+        }
+        
+        function closeEpisodeSelectionModal() {
+            episodeSelectionModal.classList.add('hidden');
+            currentAnimeForSelection = null;
+        }
+
+        animeListContainer.addEventListener('click', function(event) {
+            if (event.target.classList.contains('remove-btn')) {
+                const indexToRemove = parseInt(event.target.getAttribute('data-index'), 10);
+                const sessionId = blackholeList[indexToRemove].sessionId;
+                blackholeList.splice(indexToRemove, 1);
+                delete selectedEpisodesForAnime[sessionId];
+                localStorage.setItem('blackhole', JSON.stringify(blackholeList));
+                renderBlackholeList();
+            } else if (event.target.classList.contains('select-episodes-btn')) {
+                const sessionId = event.target.getAttribute('data-session-id');
+                const animeTitle = event.target.getAttribute('data-anime-title');
+                openEpisodeSelectionModal(sessionId, animeTitle);
+            } else if (event.target.classList.contains('get-links-btn')) {
+                const sessionId = event.target.getAttribute('data-session-id');
+                prepareDownload(sessionId);
+            } else if (event.target.classList.contains('retry-btn')) {
+                const sessionId = event.target.getAttribute('data-session-id');
+                const episodeData = JSON.parse(event.target.getAttribute('data-episode'));
+                const form = document.querySelector(`.download-form[data-session-id="${sessionId}"]`);
+                const resolution = form.querySelector('select[id^="resolution-"]').value;
+                const source = form.querySelector('select[id^="source-"]').value;
+                fetchLink(sessionId, resolution, source, episodeData);
+            }
+        });
+
+        episodeSelectionModal.addEventListener('click', function(event) {
+            if (event.target === episodeSelectionModal || event.target.closest('.modal-overlay button')) {
+                closeEpisodeSelectionModal();
+            }
+        });
+        
+        document.querySelector('#episodeSelectionModal .modal-content').addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+
+        selectAllBtn.addEventListener('click', () => {
+            episodeListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        });
+
+        deselectAllBtn.addEventListener('click', () => {
+            episodeListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        });
+
+        confirmEpisodeSelectionBtn.addEventListener('click', async () => {
+            const sessionId = currentAnimeForSelection; // Capture the session ID before modal closes
+            if (!sessionId) {
+                console.error("No anime session ID is set. Cannot proceed.");
+                return;
+            }
+
+            const selectedEpisodes = Array.from(episodeListContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                                          .map(cb => ({ session: cb.value, number: cb.dataset.episodeNumber }));
+
+            if (selectedEpisodes.length === 0) {
+                alert('Please select at least one episode.');
+                return;
+            }
+
+            selectedEpisodesForAnime[sessionId] = selectedEpisodes;
+            
+            const form = document.querySelector(`.download-form[data-session-id="${sessionId}"]`);
+            const index = form.getAttribute('data-index');
+            const optionsContainer = document.getElementById(`options-container-${index}`);
+            
+            closeEpisodeSelectionModal(); // Now we can close the modal
+
+            // Sort episodes for sequential progress display
+            selectedEpisodes.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+
+            let episodeIndex = 0;
+            const messageInterval = setInterval(() => {
+                if (episodeIndex < selectedEpisodes.length) {
+                    const episodeNum = selectedEpisodes[episodeIndex].number;
+                    optionsContainer.innerHTML = `<p class="text-yellow-400">Analyzing options for Ep. ${episodeNum}...</p>`;
+                    episodeIndex++;
+                } else {
+                    optionsContainer.innerHTML = `<p class="text-yellow-400">Finding common resolutions & sources...</p>`;
+                    clearInterval(messageInterval); // Stop after one full loop if fetch is slow
+                }
+            }, 800);
+
+            try {
+                const response = await fetch('/api/blackhole/fetch-options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        anime_session_id: sessionId,
+                        episodes: selectedEpisodes,
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch options');
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                if (data.resolutions.length === 0 || data.sources.length === 0) {
+                    optionsContainer.innerHTML = '<p class="text-red-400">No common resolutions or sources found for the selected episodes. Try a different selection.</p>';
+                    return;
+                }
+
+                let resolutionOptions = data.resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
+                let sourceOptions = data.sources.map(s => `<option value="${s}">${s}</option>`).join('');
+
+                optionsContainer.innerHTML = `
+                    <div class="mb-4">
+                        <label for="resolution-${index}" class="block text-green-300 mb-2">Resolution:</label>
+                        <select id="resolution-${index}" class="w-full bg-gray-800 text-white border border-green-400 p-2">
+                            ${resolutionOptions}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="source-${index}" class="block text-green-300 mb-2">Source:</label>
+                        <select id="source-${index}" class="w-full bg-gray-800 text-white border border-green-400 p-2">
+                            <option value="Any">Any</option>
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    <button class="get-links-btn w-full bg-green-500 text-white font-bold py-2 px-4 border-2 border-green-500 hover:bg-green-600" data-session-id="${sessionId}">
+                        Get Download Links
+                    </button>
+                `;
+
+            } catch (error) {
+                optionsContainer.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+            } finally {
+                clearInterval(messageInterval);
+            }
+        });
+
+        function getLinkStorageKey(animeSessionId, episodeSession, resolution, source) {
+            return `blackhole-link-${animeSessionId}-${episodeSession}-${resolution}-${source}`;
+        }
+
+        async function fetchLink(sessionId, resolution, source, episode) {
+            const episodeRow = document.getElementById(`episode-row-${sessionId}-${episode.session}`);
+            episodeRow.innerHTML = `<span class="text-yellow-400">Episode ${episode.number}: Fetching...</span>`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+
+            try {
+                const response = await fetch('/api/blackhole/fetch-single-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        anime_session_id: sessionId,
+                        resolution: resolution,
+                        source: source,
+                        episode: episode,
+                    }),
+                    signal: controller.signal // Pass the signal to fetch
+                });
+
+                clearTimeout(timeoutId); // Clear the timeout if the request completes in time
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Network response was not ok');
+                }
+                
+                const linkData = data.download_link;
+                episodeRow.innerHTML = `<a href="${linkData.link}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Episode ${linkData.episode}</a>`;
+
+                // Save to localStorage on success
+                const storageKey = getLinkStorageKey(sessionId, episode.session, resolution, source);
+                localStorage.setItem(storageKey, JSON.stringify(linkData));
+
+            } catch (error) {
+                clearTimeout(timeoutId);
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timed out';
+                }
+                const episodeDataAttr = JSON.stringify(episode).replace(/"/g, '&quot;');
+                episodeRow.innerHTML = `
+                    <span class="text-red-400">Episode ${episode.number}: Failed (${errorMessage})</span>
+                    <button class="retry-btn bg-yellow-500 text-black font-bold py-1 px-2 text-sm ml-4" data-session-id="${sessionId}" data-episode='${episodeDataAttr}'>
+                        Retry
+                    </button>
+                `;
+            }
+        }
+
+        async function prepareDownload(sessionId) {
+            const form = document.querySelector(`.download-form[data-session-id="${sessionId}"]`);
+            const resolution = form.querySelector('select[id^="resolution-"]').value;
+            const source = form.querySelector('select[id^="source-"]').value;
+            const linksContainer = form.querySelector('.download-links-container');
+            const selectedEpisodes = selectedEpisodesForAnime[sessionId];
+
+            if (!selectedEpisodes || selectedEpisodes.length === 0) {
+                alert("No episodes selected for this anime. Please use the 'Select Episodes' button first.");
+                return;
+            }
+            
+            selectedEpisodes.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+
+            linksContainer.innerHTML = '<h3 class="text-green-300 font-bold mb-2">Download Links:</h3><div class="grid grid-cols-1 gap-2"></div>';
+            const linksGrid = linksContainer.querySelector('.grid');
+            const queue = [];
+
+            for (const episode of selectedEpisodes) {
+                const episodeRow = document.createElement('div');
+                episodeRow.id = `episode-row-${sessionId}-${episode.session}`;
+                linksGrid.appendChild(episodeRow);
+
+                const storageKey = getLinkStorageKey(sessionId, episode.session, resolution, source);
+                const cachedLink = localStorage.getItem(storageKey);
+
+                if (cachedLink) {
+                    const linkData = JSON.parse(cachedLink);
+                    episodeRow.innerHTML = `<a href="${linkData.link}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Episode ${linkData.episode} (Cached)</a>`;
+                } else {
+                    episodeRow.innerHTML = `<span class="text-gray-400">Episode ${episode.number}: Queued...</span>`;
+                    queue.push(episode);
+                }
+            }
+
+            const concurrencyLimit = 3;
+            let running = 0;
+
+            const runNext = () => {
+                while (running < concurrencyLimit && queue.length > 0) {
+                    running++;
+                    const episode = queue.shift();
+                    fetchLink(sessionId, resolution, source, episode)
+                        .finally(() => {
+                            running--;
+                            runNext();
+                        });
+                }
+            };
+
+            runNext();
+        }
+
+        renderBlackholeList();
+    });
+</script>
+{% endblock %}

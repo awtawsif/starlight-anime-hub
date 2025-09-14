@@ -85,6 +85,14 @@ endblock %}
                 </svg>
                 View Episodes
             </a>
+            <button id="add-to-blackhole"
+                class="inline-flex items-center px-8 py-4 bg-purple-500 text-black font-bold text-xl border-2 border-purple-500 btn-primary ml-4">
+                <svg class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Add to Blackhole
+            </button>
         </div>
     </div>
 
@@ -163,4 +171,31 @@ endblock %}
 
     {% endif %} {# End of if error_message block #}
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const blackholeBtn = document.getElementById('add-to-blackhole');
+        blackholeBtn.addEventListener('click', function () {
+            const animeDetails = {
+                sessionId: '{{ anime_session_id }}',
+                title: '{{ anime_details.title | e }}',
+                poster: '{{ anime_details.poster | e }}',
+                episodes: '{{ anime_details.episodes }}'
+            };
+
+            let blackholeList = JSON.parse(localStorage.getItem('blackhole')) || [];
+            
+            // Check if the anime is already in the blackhole
+            const isAlreadyAdded = blackholeList.some(item => item.sessionId === animeDetails.sessionId);
+
+            if (!isAlreadyAdded) {
+                blackholeList.push(animeDetails);
+                localStorage.setItem('blackhole', JSON.stringify(blackholeList));
+                alert('Added to Blackhole!');
+            } else {
+                alert('This anime is already in the Blackhole.');
+            }
+        });
+    });
+</script>
 {% endblock %}
