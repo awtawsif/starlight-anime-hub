@@ -250,7 +250,7 @@ def blackhole_page():
 @main_bp.route('/bookmarks')
 def bookmarks_page():
     """
-    Renders the bookmarks page. Bookmarks are loaded client-side from localStorage.
+    Renders the constellations page. Bookmarks are loaded client-side from localStorage.
     """
     return render_template('bookmarks.html')
 
@@ -258,7 +258,7 @@ def bookmarks_page():
 @main_bp.route('/continue-watching')
 def continue_watching_page():
     """
-    Renders the continue watching page. Unwatched episodes for bookmarked anime
+    Renders the resume trajectory page. Unwatched episodes for bookmarked anime
     are loaded client-side from localStorage and API calls.
     """
     return render_template('continue_watching.html')

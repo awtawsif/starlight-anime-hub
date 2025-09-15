@@ -81,3 +81,10 @@ a, button, .anime-card, .episode-card, .bookmark-icon, .btn-primary, [onclick] {
 #downloadLinks::-webkit-scrollbar {
     display: none; /* Chrome, Safari, and Opera */
 }
+
+#add-to-blackhole {
+    background-color: var(--color-purple-500);
+    border-color: var(--color-purple-500);
+    border-style: var(--tw-border-style);
+    border-width: 2px;
+}

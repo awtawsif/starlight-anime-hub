@@ -15,11 +15,11 @@
         <!-- Navigation Links and Search Form (Collapsible on Mobile) -->
         <div id="nav-links" class="w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0 hidden flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-8">
             <a href="{{ url_for('main.bookmarks_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
-                Bookmarks
+                Constellations
             </a>
             <!-- New "Continue Watching" Link -->
             <a href="{{ url_for('main.continue_watching_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
-                Continue Watching
+                Resume Trajectory
             </a>
             <a href="{{ url_for('main.blackhole_page') }}" class="text-green-300 hover:text-green-200 text-lg font-medium">
                 Blackhole
@@ -29,7 +29,7 @@
                     type="text"
                     name="query"
                     id="nav-search-query"
-                    placeholder="Search anime..."
+                    placeholder="Scan for signals..."
                     class="bg-transparent text-green-400 placeholder-green-500 focus:outline-none w-full"
                     {% if search_query is defined and search_performed is defined %}
                         value="{{ search_query if search_performed else '' }}"
