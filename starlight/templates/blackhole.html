@@ -121,14 +121,25 @@
                 const form = document.querySelector(`.download-form[data-session-id="${sessionId}"]`);
                 const resolution = form.querySelector('select[id^="resolution-"]').value;
                 const source = form.querySelector('select[id^="source-"]').value;
-                fetchLink(sessionId, resolution, source, episodeData);
+                fetchLink(sessionId, resolution, source, episodeData, true); // Force fetch for retry
+            } else if (event.target.classList.contains('retry-cached-btn')) {
+                const sessionId = event.target.getAttribute('data-session-id');
+                const episodeData = JSON.parse(event.target.getAttribute('data-episode'));
+                const form = document.querySelector(`.download-form[data-session-id="${sessionId}"]`);
+                const resolution = form.querySelector('select[id^="resolution-"]').value;
+                const source = form.querySelector('select[id^="source-"]').value;
+                fetchLink(sessionId, resolution, source, episodeData, true); // Force fetch for cached retry
             }
         });
 
         episodeSelectionModal.addEventListener('click', function(event) {
-            if (event.target === episodeSelectionModal || event.target.closest('.modal-overlay button')) {
+            if (event.target === episodeSelectionModal) {
                 closeEpisodeSelectionModal();
             }
+        });
+
+        document.getElementById('closeEpisodeSelectionModalBtn').addEventListener('click', function(event) {
+            closeEpisodeSelectionModal();
         });
         
         document.querySelector('#episodeSelectionModal .modal-content').addEventListener('click', function(event) {
@@ -234,7 +245,7 @@
             return `blackhole-link-${animeSessionId}-${episodeSession}-${resolution}-${source}`;
         }
 
-        async function fetchLink(sessionId, resolution, source, episode) {
+        async function fetchLink(sessionId, resolution, source, episode, forceFetch = false) {
             const episodeRow = document.getElementById(`episode-row-${sessionId}-${episode.session}`);
             episodeRow.innerHTML = `<span class="text-yellow-400">Episode ${episode.number}: Fetching...</span>`;
 
@@ -313,7 +324,13 @@
 
                 if (cachedLink) {
                     const linkData = JSON.parse(cachedLink);
-                    episodeRow.innerHTML = `<a href="${linkData.link}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Episode ${linkData.episode} (Cached)</a>`;
+                    const episodeDataAttr = JSON.stringify(episode).replace(/"/g, '&quot;');
+                    episodeRow.innerHTML = `
+                        <a href="${linkData.link}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Episode ${linkData.episode} (Cached)</a>
+                        <button class="retry-cached-btn bg-yellow-500 text-black font-bold py-1 px-2 text-sm ml-4" data-session-id="${sessionId}" data-episode='${episodeDataAttr}'>
+                            Retry
+                        </button>
+                    `;
                 } else {
                     episodeRow.innerHTML = `<span class="text-gray-400">Episode ${episode.number}: Queued...</span>`;
                     queue.push(episode);
