@@ -19,10 +19,10 @@ STREAMLINE_DOWNLOAD_API_URL = "https://streamline-dl.onrender.com/download-links
 
 def _fetch_streamline_download_links(kwik_si_url):
     """
-    Sends a single kwik.si URL to the Streamline Download API to get a direct download link.
+    Sends a single kwik.cx URL to the Streamline Download API to get a direct download link.
 
     Args:
-        kwik_si_url (str): A single kwik.si link.
+        kwik_si_url (str): A single kwik.cx link.
 
     Returns:
         tuple: A tuple containing the processed download link (dict) and an error message (str).
@@ -366,7 +366,7 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
     """
     Fetches the animepahe.si play page for a specific episode,
     parses it to find initial download links, then follows those links
-    to extract the real kwik.si download URLs from embedded JavaScript.
+    to extract the real kwik.cx download URLs from embedded JavaScript.
 
     Args:
         anime_session_id (str): The session ID of the anime.
@@ -416,9 +416,9 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
                             target_script = script_tags[0]
                             script_content = target_script.string
 
-                            if script_content and 'kwik.si' in script_content:
-                                # Regex to find https://kwik.si/f/ followed by alphanumeric characters
-                                match = re.search(r'https:\/\/kwik\.si\/f\/[a-zA-Z0-9]+', script_content)
+                            if script_content and 'kwik.cx' in script_content:
+                                # Regex to find https://kwik.cx/f/ followed by alphanumeric characters
+                                match = re.search(r'https:\/\/kwik\.cx\/f\/[a-zA-Z0-9]+', script_content)
                                 if match:
                                     found_kwik_link = match.group(0)
                                     
@@ -442,10 +442,10 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
 
 def fetch_final_download_link(kwik_si_url):
     """
-    Fetches the final direct download link for a given kwik.si URL using the Streamline Download API.
+    Fetches the final direct download link for a given kwik.cx URL using the Streamline Download API.
 
     Args:
-        kwik_si_url (str): The kwik.si URL to process.
+        kwik_si_url (str): The kwik.cx URL to process.
 
     Returns:
         tuple: A tuple containing the final download link (dict) and an error message (str).
