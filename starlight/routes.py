@@ -232,6 +232,23 @@ def continue_watching_page():
     """
     return render_template('continue_watching.html')
 
+@main_bp.route('/watch/<string:anime_session_id>/<string:episode_session_id>')
+def watch_online_page(anime_session_id, episode_session_id):
+    """
+    Renders the frontend page for watching an episode online.
+    Currently acts as a UI mock/placeholder since streaming API is pending.
+    """
+    anime_title = request.args.get('anime_title', 'Unknown Anime')
+    episode_number = request.args.get('episode_number', '0')
+    
+    return render_template(
+        'watch_online.html',
+        anime_session_id=anime_session_id,
+        episode_session_id=episode_session_id,
+        anime_title=anime_title,
+        episode_number=episode_number
+    )
+
 
 
 

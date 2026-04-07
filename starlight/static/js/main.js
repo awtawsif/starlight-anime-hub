@@ -26,6 +26,7 @@
     const episodeOptionsModalTitle = document.getElementById('episodeOptionsModalTitle');
     const viewDetailsBtn = document.getElementById('viewDetailsBtn');
     const downloadEpisodeBtn = document.getElementById('downloadEpisodeBtn');
+    const watchEpisodeBtn = document.getElementById('watchEpisodeBtn');
     const closeEpisodeOptionsModalBtn = episodeOptionsModal ? episodeOptionsModal.querySelector('button') : null;
 
     const downloadModal = document.getElementById('downloadModal');
@@ -410,6 +411,9 @@
             if (episodeOptionsModal) {
                 episodeOptionsModalTitle.textContent = animeTitle + ' - Episode ' + episodeNumber;
                 viewDetailsBtn.href = `/anime/${animeSessionId}?anime_title=${encodeURIComponent(animeTitle)}`;
+                if (watchEpisodeBtn) {
+                    watchEpisodeBtn.href = `/watch/${animeSessionId}/${episodeSessionId}?anime_title=${encodeURIComponent(animeTitle)}&episode_number=${episodeNumber}`;
+                }
                 downloadEpisodeBtn.onclick = function() {
                     closeModal(episodeOptionsModal);
                     showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
