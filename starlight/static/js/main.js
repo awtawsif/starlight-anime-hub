@@ -407,18 +407,38 @@
                 return;
             }
 
+            // Re-query elements dynamically to avoid stale or null references on first load
+            const epModal = document.getElementById('episodeOptionsModal');
+            const epModalTitle = document.getElementById('episodeOptionsModalTitle');
+            const viewDetailsObj = document.getElementById('viewDetailsBtn');
+            const watchEpisodeObj = document.getElementById('watchEpisodeBtn');
+            const downloadEpisodeObj = document.getElementById('downloadEpisodeBtn');
+
             // If the episode options modal exists, show it. Otherwise, directly show the downloads.
-            if (episodeOptionsModal) {
-                episodeOptionsModalTitle.textContent = animeTitle + ' - Episode ' + episodeNumber;
-                viewDetailsBtn.href = `/anime/${animeSessionId}?anime_title=${encodeURIComponent(animeTitle)}`;
-                if (watchEpisodeBtn) {
-                    watchEpisodeBtn.href = `/watch/${animeSessionId}/${episodeSessionId}?anime_title=${encodeURIComponent(animeTitle)}&episode_number=${episodeNumber}`;
+            if (epModal) {
+                if (epModalTitle) epModalTitle.textContent = animeTitle + ' - Episode ' + episodeNumber;
+                
+                if (viewDetailsObj) {
+                    viewDetailsObj.href = `/anime/${animeSessionId}?anime_title=${encodeURIComponent(animeTitle)}`;
+                    // Hide "View Anime Details" if we are already browsing the episode list for this anime
+                    if (window.location.pathname.startsWith('/episodes/')) {
+                        viewDetailsObj.style.display = 'none';
+                    } else {
+                        viewDetailsObj.style.display = 'block';
+                    }
                 }
-                downloadEpisodeBtn.onclick = function() {
-                    closeModal(episodeOptionsModal);
-                    showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
-                };
-                openModal(episodeOptionsModal);
+
+                if (watchEpisodeObj) {
+                    watchEpisodeObj.href = `/watch/${animeSessionId}/${episodeSessionId}?anime_title=${encodeURIComponent(animeTitle)}&episode_number=${episodeNumber}`;
+                }
+                
+                if (downloadEpisodeObj) {
+                    downloadEpisodeObj.onclick = function() {
+                        closeModal(epModal);
+                        showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
+                    };
+                }
+                openModal(epModal);
             } else {
                 showDownloads(animeSessionId, episodeSessionId, 'Episode ' + episodeNumber);
             }
