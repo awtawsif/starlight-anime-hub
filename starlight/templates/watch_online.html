@@ -3,56 +3,182 @@
 {% block title %}Watch {{ anime_title }} - Episode {{ episode_number }} | {{ config.WEBSITE_TITLE }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-6xl">
-    <header class="mb-8">
-        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=1) }}" class="inline-flex items-center text-green-400 hover:text-green-300 transition-colors mb-4 group font-mono text-sm uppercase tracking-wider">
+<div class="container mx-auto px-4 py-6 max-w-7xl">
+    <header class="mb-4">
+        <a href="{{ url_for('main.episode_selection_page', anime_session_id=anime_session_id, anime_title=anime_title, page=1) }}" class="inline-flex items-center text-green-400 hover:text-green-300 transition-colors group font-mono text-sm uppercase tracking-wider">
             <svg class="h-4 w-4 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Return to Episodes
         </a>
-        <h1 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight break-words">
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight break-words">
             {{ anime_title }}
         </h1>
-        <h2 class="text-xl md:text-2xl font-medium text-green-400 mt-2 font-mono break-words">
-            Episode {{ episode_number }}
-        </h2>
     </header>
 
-    <main class="w-full flex flex-col items-center">
-        <!-- Video Player Container -->
-        <div id="videoContainer" class="w-full aspect-video bg-black border-2 border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.15)] rounded-sm relative overflow-hidden group">
-            <!-- Static Loading Overlay (Performance Optimized) -->
-            <div id="loadingOverlay" class="absolute inset-0 bg-black flex flex-col items-center justify-center z-20 font-mono">
-                <div class="text-green-500 text-lg uppercase tracking-widest font-bold">
-                    [ Loading Stream ]
+    <main class="w-full">
+        <!-- Video Player and Episode List Container -->
+        <div class="flex flex-col lg:flex-row gap-4">
+            <!-- Main Content Area -->
+            <div class="w-full lg:w-2/3">
+                <!-- Episode Title + Watch Status Toggle -->
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg md:text-xl font-medium text-green-400 font-mono">
+                        Episode {{ episode_number }}
+                    </h2>
+                    <button id="toggleWatchedBtn" class="flex items-center gap-2 px-3 py-1.5 text-sm font-mono border border-green-500/50 rounded-sm hover:bg-green-900/30 transition-colors">
+                        <span id="watchedIcon">
+                            <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                        <span id="watchedText" class="text-gray-400">Mark as Watched</span>
+                    </button>
+                </div>
+
+                <!-- Video Player Container -->
+                <div id="videoContainer" class="w-full aspect-video bg-black border-2 border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.15)] rounded-sm relative overflow-hidden group">
+                    <!-- Resume Modal Overlay -->
+                    <div id="resumeOverlay" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-30 font-mono hidden">
+                        <div class="text-green-400 text-lg mb-4">Resume playback?</div>
+                        <div id="resumeTime" class="text-gray-400 text-sm mb-6"></div>
+                        <div class="flex gap-4">
+                            <button id="resumeBtn" class="px-6 py-2 bg-green-500 text-black font-semibold rounded-sm hover:bg-green-400 transition-colors">Resume</button>
+                            <button id="startOverBtn" class="px-6 py-2 bg-gray-700 text-white font-semibold border border-gray-500 rounded-sm hover:bg-gray-600 transition-colors">Start Over</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-black flex flex-col items-center justify-center z-20 font-mono">
+                        <div class="text-green-500 text-lg uppercase tracking-widest font-bold">
+                            [ Loading Stream ]
+                        </div>
+                    </div>
+                    
+                    <!-- ArtPlayer will be mounted here -->
+                    <div id="player" class="w-full h-full"></div>
                 </div>
             </div>
-            
-            <!-- ArtPlayer will be mounted here -->
-            <div id="player" class="w-full h-full"></div>
+
+            <!-- Episode List Sidebar -->
+            <div class="w-full lg:w-1/3">
+                <div class="bg-black border border-green-500/30 rounded-sm overflow-hidden">
+                    <div class="p-2 border-b border-green-900/50 bg-green-900/20 flex items-center justify-between">
+                        <h3 class="text-green-400 font-mono text-xs uppercase tracking-wider">Episodes</h3>
+                        {% if pagination %}
+                        <span class="text-xs text-gray-500 font-mono">{{ pagination.total }} episodes</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Episode List -->
+                    <div class="overflow-y-auto custom-scrollbar" style="min-height: 100px; max-height: 300px;">
+                        {% if episodes %}
+                        <div class="episode-list-grid p-2">
+                        {% for episode in episodes %}
+                            {% set is_current = episode.episode == episode_number|int %}
+                            <a href="{{ url_for('main.watch_online_page', anime_session_id=anime_session_id, episode_session_id=episode.session, anime_title=anime_title, episode_number=episode.episode, page=current_page, sort=current_sort_order) }}"
+                               class="episode-cell {% if is_current %}current{% endif %} js-episode-cell"
+                               data-episode-session="{{ episode.session }}"
+                               title="Episode {{ episode.episode }}">
+                                {{ episode.episode }}
+                            </a>
+                        {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="flex items-center justify-center p-4 text-gray-500 text-xs font-mono">
+                            No episodes found
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if pagination and pagination.last_page > 1 %}
+                    <div class="p-2 border-t border-green-900/50 flex items-center justify-between">
+                        {% if pagination.has_prev %}
+                        <a href="{{ url_for('main.watch_online_page', anime_session_id=anime_session_id, episode_session_id=episode_session_id, anime_title=anime_title, episode_number=episode_number, page=pagination.prev_page, sort=current_sort_order) }}" 
+                           class="px-2 py-1 text-xs font-mono text-green-400 hover:text-green-300">&lt; Prev</a>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-mono text-gray-600">&lt; Prev</span>
+                        {% endif %}
+                        <span class="text-xs font-mono text-gray-500">{{ current_page }}/{{ pagination.last_page }}</span>
+                        {% if pagination.has_next %}
+                        <a href="{{ url_for('main.watch_online_page', anime_session_id=anime_session_id, episode_session_id=episode_session_id, anime_title=anime_title, episode_number=episode_number, page=pagination.next_page, sort=current_sort_order) }}" 
+                           class="px-2 py-1 text-xs font-mono text-green-400 hover:text-green-300">Next &gt;</a>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-mono text-gray-600">Next &gt;</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </main>
-
-    <footer class="mt-8 flex justify-between items-center border-t border-green-900/50 pt-6">
-        <button class="px-4 py-2 bg-black border border-gray-700 text-gray-500 font-mono text-xs uppercase tracking-wider cursor-not-allowed" disabled>
-            &lt; Prev
-        </button>
-        <div class="flex space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" style="animation-delay: 200ms;"></span>
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" style="animation-delay: 400ms;"></span>
-        </div>
-        <button class="px-4 py-2 bg-black border border-gray-700 text-gray-500 font-mono text-xs uppercase tracking-wider cursor-not-allowed" disabled>
-            Next &gt;
-        </button>
-    </footer>
 </div>
 
 <style>
     @keyframes slide {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(300%); }
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #111827;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #22c55e;
+        border-radius: 3px;
+    }
+    .episode-list-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 0.5rem;
+    }
+    .episode-cell {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: #9ca3af;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+        aspect-ratio: 1;
+        width: 100% !important;
+        flex-shrink: 0;
+    }
+    .episode-cell:hover {
+        background: #22c55e;
+        color: #000;
+        border-color: #22c55e;
+    }
+    .episode-cell.current {
+        background: #22c55e;
+        color: #000;
+        border-color: #22c55e;
+    }
+    .episode-cell.watched {
+        background: #065f46;
+        border-color: #22c55e;
+    }
+    .episode-cell.watched::after {
+        content: '✓';
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        font-size: 0.4rem;
+        color: #22c55e;
+    }
+    .episode-cell.current.watched {
+        background: #22c55e;
+    }
+    .episode-cell.current.watched::after {
+        color: #000;
     }
 </style>
 {% endblock %}
@@ -62,117 +188,301 @@
 <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/artplayer-plugin-hls-control/dist/artplayer-plugin-hls-control.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+(function() {
     const anime_session_id = "{{ anime_session_id }}";
     const episode_session_id = "{{ episode_session_id }}";
+    const episode_number = {{ episode_number }};
+    const anime_title = "{{ anime_title }}";
+    
+    const WATCHED_EPISODES_KEY = 'starlightWatchedEpisodes';
+    const PLAYBACK_POSITION_KEY = `starlightPlaybackPosition_${anime_session_id}_${episode_session_id}`;
+    
     const loadingOverlay = document.getElementById('loadingOverlay');
+    const resumeOverlay = document.getElementById('resumeOverlay');
+    const resumeTime = document.getElementById('resumeTime');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const startOverBtn = document.getElementById('startOverBtn');
+    const toggleWatchedBtn = document.getElementById('toggleWatchedBtn');
+    const watchedIcon = document.getElementById('watchedIcon');
+    const watchedText = document.getElementById('watchedText');
+    
     let art = null;
-
-    fetch(`/api/episode-streams/${anime_session_id}/${episode_session_id}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.streams && data.streams.length > 0) {
-                loadingOverlay.style.display = 'none';
-                
-                // Sort streams descending by resolution
-                data.streams.sort((a, b) => {
-                    let resA = parseInt(a.resolution);
-                    let resB = parseInt(b.resolution);
-                    return (resB || 0) - (resA || 0);
-                });
-
-                // Pick the highest resolution stream as initial source
-                const initialStream = data.streams[0].url;
-
-                // Map streams to ArtPlayer quality format
-                const qualityLevels = data.streams.map((stream, index) => {
-                    const audioLabel = stream.audio ? `[${stream.audio.toUpperCase()}]` : '';
-                    return {
-                        default: index === 0,
-                        html: `${audioLabel} ${stream.resolution}p ${stream.fansub || ''}`.trim(),
-                        url: stream.url
-                    };
-                });
-
-                art = new Artplayer({
-                    container: '#player',
-                    url: initialStream,
-                    type: 'hls',
-                    theme: '#22c55e', // Green theme matching the site
-                    autoplay: false,
-                    pip: true,
-                    screenshot: true,
-                    setting: true,
-                    loop: false,
-                    flip: true,
-                    playbackRate: true,
-                    aspectRatio: true,
-                    fullscreen: true,
-                    miniProgressBar: true,
-                    mutex: true,
-                    backdrop: true,
-                    playsInline: true,
-                    autoPlayback: true,
-                    airplay: true,
-                    quality: qualityLevels,
-                    customType: {
-                        hls: function(video, url, art) {
-                            if (Hls.isSupported()) {
-                                if (art.hls) art.hls.destroy();
-                                const hls = new Hls();
-                                hls.loadSource(url);
-                                hls.attachMedia(video);
-                                art.hls = hls;
-                                art.on('destroy', () => hls.destroy());
-                                
-                                // Preserve playback position when switching quality
-                                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                                    if (art.currentTime > 0) {
-                                        video.currentTime = art.currentTime;
-                                    }
-                                });
-                            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                video.src = url;
-                            }
-                        },
-                    },
-                    settings: [
-                        {
-                            html: 'Playback Speed',
-                            selector: [
-                                { html: '0.5x', value: 0.5 },
-                                { html: '0.75x', value: 0.75 },
-                                { html: 'Normal', value: 1, default: true },
-                                { html: '1.25x', value: 1.25 },
-                                { html: '1.5x', value: 1.5 },
-                                { html: '2.0x', value: 2 },
-                            ],
-                            onSelect: function(item) {
-                                art.playbackRate = item.value;
-                                return item.html;
+    let hasMarkedAsWatched = false;
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+    
+    // --- Watch Status Functions ---
+    function getWatchedEpisodesData() {
+        try {
+            const stored = localStorage.getItem(WATCHED_EPISODES_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch { return {}; }
+    }
+    
+    function saveWatchedEpisodesData(data) {
+        try { localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(data)); } catch {}
+    }
+    
+    function isEpisodeWatched(animeSessionId, episodeSessionId) {
+        const data = getWatchedEpisodesData();
+        return data[animeSessionId] && data[animeSessionId].includes(episodeSessionId);
+    }
+    
+    function toggleEpisodeWatched(animeSessionId, episodeSessionId) {
+        const data = getWatchedEpisodesData();
+        if (!data[animeSessionId]) data[animeSessionId] = [];
+        
+        const idx = data[animeSessionId].indexOf(episodeSessionId);
+        if (idx > -1) {
+            data[animeSessionId].splice(idx, 1);
+        } else {
+            data[animeSessionId].push(episodeSessionId);
+        }
+        saveWatchedEpisodesData(data);
+        updateWatchStatusUI();
+        updateEpisodeCellStyles();
+    }
+    
+    function updateWatchStatusUI() {
+        const watched = isEpisodeWatched(anime_session_id, episode_session_id);
+        if (watched) {
+            watchedIcon.innerHTML = '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+            watchedText.textContent = 'Watched';
+            watchedText.classList.add('text-green-400');
+            watchedText.classList.remove('text-gray-400');
+        } else {
+            watchedIcon.innerHTML = '<svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            watchedText.textContent = 'Mark as Watched';
+            watchedText.classList.remove('text-green-400');
+            watchedText.classList.add('text-gray-400');
+        }
+    }
+    
+    function updateEpisodeCellStyles() {
+        const cells = document.querySelectorAll('.episode-cell');
+        const watchedData = getWatchedEpisodesData();
+        const watchedList = watchedData[anime_session_id] || [];
+        
+        cells.forEach(cell => {
+            const href = cell.getAttribute('href');
+            if (href) {
+                const match = href.match(/episode_session_id=([^&]+)/);
+                if (match) {
+                    const epSessionId = match[1];
+                    if (watchedList.includes(epSessionId)) {
+                        cell.classList.add('watched');
+                    } else {
+                        cell.classList.remove('watched');
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Playback Position Functions ---
+    function getSavedPosition() {
+        try {
+            const saved = localStorage.getItem(PLAYBACK_POSITION_KEY);
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    }
+    
+    function savePosition() {
+        if (!art || !art.duration) return;
+        try {
+            localStorage.setItem(PLAYBACK_POSITION_KEY, JSON.stringify({
+                position: art.currentTime,
+                duration: art.duration,
+                timestamp: Date.now()
+            }));
+        } catch {}
+    }
+    
+    function clearSavedPosition() {
+        try { localStorage.removeItem(PLAYBACK_POSITION_KEY); } catch {}
+    }
+    
+    function showResumePrompt() {
+        const saved = getSavedPosition();
+        if (!saved || saved.position < 10) return;
+        
+        const minutes = Math.floor(saved.position / 60);
+        const seconds = Math.floor(saved.position % 60);
+        resumeTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} of ${Math.floor(saved.duration / 60)}:${Math.floor(saved.duration % 60).toString().padStart(2, '0')}`;
+        resumeOverlay.classList.remove('hidden');
+        
+        resumeBtn.onclick = () => {
+            resumeOverlay.classList.add('hidden');
+            art.currentTime = saved.position;
+            art.play();
+        };
+        
+        startOverBtn.onclick = () => {
+            resumeOverlay.classList.add('hidden');
+            clearSavedPosition();
+            art.play();
+        };
+    }
+    
+    // --- Stream Fetch with Retry ---
+    function fetchStreams(url) {
+        return fetch(url).then(response => response.json());
+    }
+    
+    function loadStream() {
+        const cacheBuster = `&t=${Date.now()}`;
+        fetchStreams(`/api/episode-streams/${anime_session_id}/${episode_session_id}${cacheBuster}`)
+            .then(data => {
+                if (data.streams && data.streams.length > 0) {
+                    loadingOverlay.style.display = 'none';
+                    
+                    data.streams.sort((a, b) => {
+                        let resA = parseInt(a.resolution);
+                        let resB = parseInt(b.resolution);
+                        return (resB || 0) - (resA || 0);
+                    });
+                    
+                    const initialStream = data.streams[0].url;
+                    
+                    const qualityLevels = data.streams.map((stream, index) => {
+                        const audioLabel = stream.audio ? `[${stream.audio.toUpperCase()}]` : '';
+                        return {
+                            default: index === 0,
+                            html: `${audioLabel} ${stream.resolution}p ${stream.fansub || ''}`.trim(),
+                            url: stream.url
+                        };
+                    });
+                    
+                    art = new Artplayer({
+                        container: '#player',
+                        url: initialStream,
+                        type: 'hls',
+                        theme: '#22c55e',
+                        autoplay: false,
+                        pip: true,
+                        screenshot: true,
+                        setting: true,
+                        loop: false,
+                        flip: true,
+                        playbackRate: true,
+                        aspectRatio: true,
+                        fullscreen: true,
+                        miniProgressBar: true,
+                        mutex: true,
+                        backdrop: true,
+                        playsInline: true,
+                        autoPlayback: true,
+                        airplay: true,
+                        quality: qualityLevels,
+                        customType: {
+                            hls: function(video, url, art) {
+                                if (Hls.isSupported()) {
+                                    if (art.hls) art.hls.destroy();
+                                    const hls = new Hls();
+                                    hls.loadSource(url);
+                                    hls.attachMedia(video);
+                                    art.hls = hls;
+                                    art.on('destroy', () => hls.destroy());
+                                    
+                                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                                        if (art.currentTime > 0) {
+                                            video.currentTime = art.currentTime;
+                                        }
+                                    });
+                                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                    video.src = url;
+                                }
                             },
                         },
-                    ],
-                });
-
-                // Set local custom styles for the player to match our vibe
-                art.on('ready', () => {
-                    const playerElement = document.querySelector('.artplayer-app');
-                    if (playerElement) {
-                        playerElement.style.fontFamily = 'monospace';
-                    }
-                });
-
-            } else {
-                loadingOverlay.innerHTML = '<div class="text-red-400 font-mono text-center">Failed to load stream.<br>Media unavailable.</div>';
-                loadingOverlay.style.display = 'flex';
-            }
-        })
-        .catch(err => {
-            console.error('Error fetching stream:', err);
-            loadingOverlay.innerHTML = '<div class="text-red-400 font-mono text-center">Connection Error.<br>Please try again later.</div>';
-            loadingOverlay.style.display = 'flex';
-        });
-});
+                        settings: [
+                            {
+                                html: 'Playback Speed',
+                                selector: [
+                                    { html: '0.5x', value: 0.5 },
+                                    { html: '0.75x', value: 0.75 },
+                                    { html: 'Normal', value: 1, default: true },
+                                    { html: '1.25x', value: 1.25 },
+                                    { html: '1.5x', value: 1.5 },
+                                    { html: '2.0x', value: 2 },
+                                ],
+                                onSelect: function(item) {
+                                    art.playbackRate = item.value;
+                                    return item.html;
+                                },
+                            },
+                        ],
+                    });
+                    
+                    art.on('ready', () => {
+                        const playerElement = document.querySelector('.artplayer-app');
+                        if (playerElement) {
+                            playerElement.style.fontFamily = 'monospace';
+                        }
+                        showResumePrompt();
+                    });
+                    
+                    setInterval(savePosition, 10000);
+                    
+                    art.on('pause', savePosition);
+                    art.on('ended', () => {
+                        clearSavedPosition();
+                        if (!hasMarkedAsWatched) {
+                            hasMarkedAsWatched = true;
+                            toggleEpisodeWatched(anime_session_id, episode_session_id);
+                        }
+                    });
+                    
+                    art.on('timeupdate', () => {
+                        if (art.duration && art.currentTime / art.duration >= 0.9 && !hasMarkedAsWatched) {
+                            hasMarkedAsWatched = true;
+                            toggleEpisodeWatched(anime_session_id, episode_session_id);
+                        }
+                    });
+                    
+                } else if (!data.cached && retryCount < MAX_RETRIES) {
+                    // Empty response but not cached - retry
+                    retryCount++;
+                    console.log(`Retrying stream fetch (${retryCount}/${MAX_RETRIES})...`);
+                    setTimeout(() => loadStream(), 1000 * retryCount);
+                } else {
+                    // No streams available after retries
+                    loadingOverlay.innerHTML = `
+                        <div class="text-red-400 font-mono text-center">
+                            <p class="mb-2">Failed to load stream.</p>
+                            <p class="text-gray-500 text-sm">Media unavailable.</p>
+                            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-green-500 text-black text-sm font-mono rounded hover:bg-green-400">Retry</button>
+                        </div>`;
+                    loadingOverlay.style.display = 'flex';
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching stream:', err);
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    setTimeout(() => loadStream(), 1000 * retryCount);
+                } else {
+                    loadingOverlay.innerHTML = `
+                        <div class="text-red-400 font-mono text-center">
+                            <p class="mb-2">Connection Error.</p>
+                            <p class="text-gray-500 text-sm">Please try again later.</p>
+                            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-green-500 text-black text-sm font-mono rounded hover:bg-green-400">Retry</button>
+                        </div>`;
+                    loadingOverlay.style.display = 'flex';
+                }
+            });
+    }
+    
+    // --- Toggle Watched Button ---
+    toggleWatchedBtn.addEventListener('click', () => {
+        toggleEpisodeWatched(anime_session_id, episode_session_id);
+    });
+    
+    // --- Initialize ---
+    updateWatchStatusUI();
+    updateEpisodeCellStyles();
+    
+    // --- Start Stream Loading ---
+    loadStream();
+})();
 </script>
 {% endblock %}

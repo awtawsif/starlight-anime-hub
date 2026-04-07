@@ -195,7 +195,6 @@ def get_episode_downloads(anime_session_id, episode_session_id):
     return jsonify({'downloads': downloads})
 
 @main_bp.route('/api/episode-streams/<string:anime_session_id>/<string:episode_session_id>', methods=['GET'])
-@cache.cached(timeout=900)
 def get_episode_streams(anime_session_id, episode_session_id):
     """
     Fetches m3u8 stream links for a specific episode using the API handler.
@@ -206,12 +205,17 @@ def get_episode_streams(anime_session_id, episode_session_id):
     if error_message:
         logger.error(f"API Request Failed: fetch_episode_streams returned error: {error_message}")
         return jsonify({'error': error_message}), 500
+    
+    # If streams is empty, don't cache (return a flag for client to retry)
+    if not streams:
+        logger.warning(f"API Request: No streams found for anime: {anime_session_id}, episode: {episode_session_id}")
+        return jsonify({'streams': [], 'cached': False})
         
     logger.info(f"API Request Success: Found {len(streams)} active streams")
     for stream in streams:
         encoded = urllib.parse.quote(stream['url'])
         stream['url'] = f"/api/proxy-stream?url={encoded}"
-    return jsonify({'streams': streams})
+    return jsonify({'streams': streams, 'cached': True})
 
 def rewrite_m3u8(content, base_url):
     lines = content.splitlines()
@@ -315,17 +319,70 @@ def continue_watching_page():
 def watch_online_page(anime_session_id, episode_session_id):
     """
     Renders the frontend page for watching an episode online.
-    Currently acts as a UI mock/placeholder since streaming API is pending.
     """
     anime_title = request.args.get('anime_title', 'Unknown Anime')
     episode_number = request.args.get('episode_number', '0')
+    page = request.args.get('page', type=int)
+    sort_order = request.args.get('sort', 'episode_asc')
+    
+    if page is None:
+        try:
+            ep_num = float(episode_number)
+            if sort_order == 'episode_asc':
+                page = max(1, int((ep_num - 1) // 30) + 1)
+            else:
+                page = 1 # We'll need to fetch once to get total pages for desc
+        except ValueError:
+            page = 1
+
+        episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page, sort_order)
+
+        # If descending and guessing first page, we might need to adjust based on total
+        if sort_order == 'episode_desc' and pagination_data.get('total', 0) > 0 and 'ep_num' in locals():
+            total = pagination_data.get('total')
+            per_page = pagination_data.get('per_page', 30)
+            guessed_page = max(1, int((total - ep_num) // per_page) + 1)
+            if guessed_page != page:
+                page = min(guessed_page, pagination_data.get('last_page', 1))
+                episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page, sort_order)
+        
+        # Verify and adjust 1 page around if slightly off due to missing episodes
+        found = any(str(ep.get('episode')) == str(episode_number) for ep in episodes)
+        if not found and episodes and pagination_data.get('last_page', 1) > 1 and 'ep_num' in locals():
+            first_ep = float(episodes[0].get('episode', 0))
+            last_ep = float(episodes[-1].get('episode', 0))
+            new_page = page
+            if sort_order == 'episode_asc':
+                if ep_num > last_ep: new_page = min(page + 1, pagination_data.get('last_page'))
+                elif ep_num < first_ep: new_page = max(1, page - 1)
+            else:
+                if ep_num < last_ep: new_page = min(page + 1, pagination_data.get('last_page'))
+                elif ep_num > first_ep: new_page = max(1, page - 1)
+            
+            if new_page != page:
+                page = new_page
+                episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page, sort_order)
+    else:
+        episodes, pagination_data, error_message = fetch_episode_list(anime_session_id, page, sort_order)
+    
+    # Add has_prev and has_next to pagination data
+    cp = pagination_data.get('current_page', 1)
+    lp = pagination_data.get('last_page', 1)
+    pagination_data['has_prev'] = cp > 1
+    pagination_data['has_next'] = cp < lp
+    pagination_data['prev_page'] = cp - 1 if cp > 1 else 1
+    pagination_data['next_page'] = cp + 1 if cp < lp else lp
     
     return render_template(
         'watch_online.html',
         anime_session_id=anime_session_id,
         episode_session_id=episode_session_id,
         anime_title=anime_title,
-        episode_number=episode_number
+        episode_number=episode_number,
+        episodes=episodes,
+        pagination=pagination_data,
+        current_page=page,
+        current_sort_order=sort_order
     )
 
 
