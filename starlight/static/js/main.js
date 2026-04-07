@@ -1013,6 +1013,275 @@
         }
     });
 
+    // --- Page-specific Initialization ---
+    window.initWatchOnlinePage = function(config) {
+        const { anime_session_id, episode_session_id, episode_number, anime_title } = config;
+        
+        const PLAYBACK_POSITION_KEY = `starlightPlaybackPosition_${anime_session_id}_${episode_session_id}`;
+        
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const resumeOverlay = document.getElementById('resumeOverlay');
+        const resumeTime = document.getElementById('resumeTime');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const startOverBtn = document.getElementById('startOverBtn');
+        const toggleWatchedBtn = document.getElementById('toggleWatchedBtn');
+        const watchedIcon = document.getElementById('watchedIcon');
+        const watchedText = document.getElementById('watchedText');
+        
+        let art = null;
+        let hasMarkedAsWatched = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 2;
+        
+        // Use global/IIFE functions for data access, but keep local UI updates
+        function updateWatchStatusUI() {
+            const watched = isEpisodeWatched(anime_session_id, episode_session_id);
+            if (watched) {
+                watchedIcon.innerHTML = '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+                watchedText.textContent = 'Watched';
+                watchedText.classList.add('text-green-400');
+                watchedText.classList.remove('text-gray-400');
+            } else {
+                watchedIcon.innerHTML = '<svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                watchedText.textContent = 'Mark as Watched';
+                watchedText.classList.remove('text-green-400');
+                watchedText.classList.add('text-gray-400');
+            }
+        }
+        
+        function updateEpisodeCellStyles() {
+            const cells = document.querySelectorAll('.episode-cell');
+            const watchedData = getWatchedEpisodesData();
+            const watchedList = watchedData[anime_session_id] || [];
+            
+            cells.forEach(cell => {
+                const href = cell.getAttribute('href');
+                if (href) {
+                    const match = href.match(/episode_session_id=([^&]+)/);
+                    if (match) {
+                        const epSessionId = match[1];
+                        if (watchedList.includes(epSessionId)) {
+                            cell.classList.add('watched');
+                        } else {
+                            cell.classList.remove('watched');
+                        }
+                    }
+                }
+            });
+        }
+        
+        function localToggleEpisodeWatched() {
+            const data = getWatchedEpisodesData();
+            if (!data[anime_session_id]) data[anime_session_id] = [];
+            
+            const idx = data[anime_session_id].indexOf(episode_session_id);
+            if (idx > -1) {
+                data[anime_session_id].splice(idx, 1);
+            } else {
+                data[anime_session_id].push(episode_session_id);
+            }
+            saveWatchedEpisodesData(data);
+            updateWatchStatusUI();
+            updateEpisodeCellStyles();
+        }
+        
+        // --- Playback Position Functions ---
+        function getSavedPosition() {
+            try {
+                const saved = localStorage.getItem(PLAYBACK_POSITION_KEY);
+                return saved ? JSON.parse(saved) : null;
+            } catch { return null; }
+        }
+        
+        function savePosition() {
+            if (!art || !art.duration) return;
+            try {
+                localStorage.setItem(PLAYBACK_POSITION_KEY, JSON.stringify({
+                    position: art.currentTime,
+                    duration: art.duration,
+                    timestamp: Date.now()
+                }));
+            } catch {}
+        }
+        
+        function clearSavedPosition() {
+            try { localStorage.removeItem(PLAYBACK_POSITION_KEY); } catch {}
+        }
+        
+        function showResumePrompt() {
+            const saved = getSavedPosition();
+            if (!saved || saved.position < 10) return;
+            
+            const minutes = Math.floor(saved.position / 60);
+            const seconds = Math.floor(saved.position % 60);
+            resumeTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} of ${Math.floor(saved.duration / 60)}:${Math.floor(saved.duration % 60).toString().padStart(2, '0')}`;
+            resumeOverlay.classList.remove('hidden');
+            
+            resumeBtn.onclick = () => {
+                resumeOverlay.classList.add('hidden');
+                art.currentTime = saved.position;
+                art.play();
+            };
+            
+            startOverBtn.onclick = () => {
+                resumeOverlay.classList.add('hidden');
+                clearSavedPosition();
+                art.play();
+            };
+        }
+        
+        function fetchStreams(url) {
+            return fetch(url).then(response => response.json());
+        }
+        
+        function loadStream() {
+            const cacheBuster = `&t=${Date.now()}`;
+            fetchStreams(`/api/episode-streams/${anime_session_id}/${episode_session_id}${cacheBuster}`)
+                .then(data => {
+                    if (data.streams && data.streams.length > 0) {
+                        loadingOverlay.style.display = 'none';
+                        
+                        data.streams.sort((a, b) => {
+                            let resA = parseInt(a.resolution);
+                            let resB = parseInt(b.resolution);
+                            return (resB || 0) - (resA || 0);
+                        });
+                        
+                        const initialStream = data.streams[0].url;
+                        
+                        const qualityLevels = data.streams.map((stream, index) => {
+                            const audioLabel = stream.audio ? `[${stream.audio.toUpperCase()}]` : '';
+                            return {
+                                default: index === 0,
+                                html: `${audioLabel} ${stream.resolution}p ${stream.fansub || ''}`.trim(),
+                                url: stream.url
+                            };
+                        });
+                        
+                        art = new Artplayer({
+                            container: '#player',
+                            url: initialStream,
+                            type: 'hls',
+                            theme: '#22c55e',
+                            autoplay: false,
+                            pip: true,
+                            screenshot: true,
+                            setting: true,
+                            loop: false,
+                            flip: true,
+                            playbackRate: true,
+                            aspectRatio: true,
+                            fullscreen: true,
+                            miniProgressBar: true,
+                            mutex: true,
+                            backdrop: true,
+                            playsInline: true,
+                            autoPlayback: true,
+                            airplay: true,
+                            quality: qualityLevels,
+                            customType: {
+                                hls: function(video, url, art) {
+                                    if (Hls.isSupported()) {
+                                        if (art.hls) art.hls.destroy();
+                                        const hls = new Hls();
+                                        hls.loadSource(url);
+                                        hls.attachMedia(video);
+                                        art.hls = hls;
+                                        art.on('destroy', () => hls.destroy());
+                                        
+                                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                                            if (art.currentTime > 0) {
+                                                video.currentTime = art.currentTime;
+                                            }
+                                        });
+                                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                        video.src = url;
+                                    }
+                                },
+                            },
+                            settings: [
+                                {
+                                    html: 'Playback Speed',
+                                    selector: [
+                                        { html: '0.5x', value: 0.5 },
+                                        { html: '0.75x', value: 0.75 },
+                                        { html: 'Normal', value: 1, default: true },
+                                        { html: '1.25x', value: 1.25 },
+                                        { html: '1.5x', value: 1.5 },
+                                        { html: '2.0x', value: 2 },
+                                    ],
+                                    onSelect: function(item) {
+                                        art.playbackRate = item.value;
+                                        return item.html;
+                                    },
+                                },
+                            ],
+                        });
+                        
+                        art.on('ready', () => {
+                            const playerElement = document.querySelector('.artplayer-app');
+                            if (playerElement) {
+                                playerElement.style.fontFamily = 'monospace';
+                            }
+                            showResumePrompt();
+                        });
+                        
+                        setInterval(savePosition, 10000);
+                        
+                        art.on('pause', savePosition);
+                        art.on('ended', () => {
+                            clearSavedPosition();
+                            if (!hasMarkedAsWatched) {
+                                hasMarkedAsWatched = true;
+                                localToggleEpisodeWatched();
+                            }
+                        });
+                        
+                        art.on('timeupdate', () => {
+                            if (art.duration && art.currentTime / art.duration >= 0.9 && !hasMarkedAsWatched) {
+                                hasMarkedAsWatched = true;
+                                localToggleEpisodeWatched();
+                            }
+                        });
+                        
+                    } else if (!data.cached && retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        console.log(`Retrying stream fetch (${retryCount}/${MAX_RETRIES})...`);
+                        setTimeout(() => loadStream(), 1000 * retryCount);
+                    } else {
+                        loadingOverlay.innerHTML = `
+                            <div class="text-red-400 font-mono text-center">
+                                <p class="mb-2">Failed to load stream.</p>
+                                <p class="text-gray-500 text-sm">Media unavailable.</p>
+                                <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-green-500 text-black text-sm font-mono rounded hover:bg-green-400">Retry</button>
+                            </div>`;
+                        loadingOverlay.style.display = 'flex';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching stream:', err);
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        setTimeout(() => loadStream(), 1000 * retryCount);
+                    } else {
+                        loadingOverlay.innerHTML = `
+                            <div class="text-red-400 font-mono text-center">
+                                <p class="mb-2">Connection Error.</p>
+                                <p class="text-gray-500 text-sm">Please try again later.</p>
+                                <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-green-500 text-black text-sm font-mono rounded hover:bg-green-400">Retry</button>
+                            </div>`;
+                        loadingOverlay.style.display = 'flex';
+                    }
+                });
+        }
+        
+        toggleWatchedBtn.addEventListener('click', localToggleEpisodeWatched);
+        
+        updateWatchStatusUI();
+        updateEpisodeCellStyles();
+        loadStream();
+    };
+    
     // Expose functions to global scope if needed by inline scripts (e.g., toggleText)
     window.toggleBookmark = toggleBookmark;
     window.showDownloads = showDownloads; // For episode_selection.html direct calls
