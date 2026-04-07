@@ -5,7 +5,10 @@ This module defines the Flask routes for the Starlight Anime Hub application.
 It uses functions from api_handlers to fetch and process data.
 """
 
-from flask import Blueprint, request, render_template, jsonify, url_for, current_app
+from flask import Blueprint, request, render_template, jsonify, url_for, current_app, Response, stream_with_context
+import urllib.parse
+import requests
+import re
 from .extensions import cache
 from .api_handlers import (
     fetch_anime_search_results,
@@ -13,7 +16,8 @@ from .api_handlers import (
     fetch_episode_list,
     fetch_episode_download_links,
     proxy_image_content,
-    fetch_airing_anime
+    fetch_airing_anime,
+    fetch_episode_streams
 )
 import logging
 import asyncio
@@ -189,6 +193,81 @@ def get_episode_downloads(anime_session_id, episode_session_id):
     if error_message:
         return jsonify({'error': error_message}), 500
     return jsonify({'downloads': downloads})
+
+@main_bp.route('/api/episode-streams/<string:anime_session_id>/<string:episode_session_id>', methods=['GET'])
+@cache.cached(timeout=900)
+def get_episode_streams(anime_session_id, episode_session_id):
+    """
+    Fetches m3u8 stream links for a specific episode using the API handler.
+    """
+    logger.info(f"API Request: Fetching streams for anime: {anime_session_id}, episode: {episode_session_id}")
+    streams, error_message = fetch_episode_streams(anime_session_id, episode_session_id)
+    
+    if error_message:
+        logger.error(f"API Request Failed: fetch_episode_streams returned error: {error_message}")
+        return jsonify({'error': error_message}), 500
+        
+    logger.info(f"API Request Success: Found {len(streams)} active streams")
+    for stream in streams:
+        encoded = urllib.parse.quote(stream['url'])
+        stream['url'] = f"/api/proxy-stream?url={encoded}"
+    return jsonify({'streams': streams})
+
+def rewrite_m3u8(content, base_url):
+    lines = content.splitlines()
+    new_lines = []
+    for line in lines:
+        if line.startswith('#'):
+            if 'URI="' in line:
+                def repl(match):
+                    ab_url = urllib.parse.urljoin(base_url, match.group(1))
+                    enc = urllib.parse.quote(ab_url)
+                    return f'URI="/api/proxy-stream?url={enc}"'
+                line = re.sub(r'URI="([^"]+)"', repl, line)
+            new_lines.append(line)
+        elif not line.strip():
+            new_lines.append(line)
+        else:
+            absolute_url = urllib.parse.urljoin(base_url, line)
+            encoded_url = urllib.parse.quote(absolute_url)
+            proxy_url = f"/api/proxy-stream?url={encoded_url}"
+            new_lines.append(proxy_url)
+    return "\n".join(new_lines)
+
+@main_bp.route('/api/proxy-stream')
+def proxy_stream():
+    url = request.args.get('url')
+    if not url:
+        return "URL required", 400
+        
+    headers = {
+        'Referer': 'https://kwik.cx/',
+        'Origin': 'https://kwik.cx',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    try:
+        req = requests.get(url, headers=headers, stream=True, timeout=15)
+        req.raise_for_status()
+        
+        content_type = req.headers.get('Content-Type', '')
+        if 'mpegurl' in content_type or url.endswith('.m3u8') or url.endswith('.m3u'):
+            content = req.text
+            rewritten_content = rewrite_m3u8(content, url)
+            return Response(rewritten_content, mimetype='application/vnd.apple.mpegurl')
+        else:
+            # For streaming video segments seamlessly
+            def generate():
+                for chunk in req.iter_content(chunk_size=8192):
+                    if chunk:
+                        yield chunk
+            # Add CORS headers so hls.js doesn't complain about the proxy route
+            response = current_app.response_class(stream_with_context(generate()), content_type=content_type)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+    except Exception as e:
+        logger.error(f"Error proxying stream {url}: {e}")
+        return str(e), 500
 
 @main_bp.route('/proxy-image')
 @cache.cached(timeout=900, query_string=True)
