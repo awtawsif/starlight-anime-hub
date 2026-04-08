@@ -7,7 +7,7 @@ It uses functions from api_handlers to fetch and process data.
 
 from flask import Blueprint, request, render_template, jsonify, url_for, current_app, Response, stream_with_context
 import urllib.parse
-import requests
+from curl_cffi import requests
 import re
 from .extensions import cache
 from .api_handlers import (
@@ -199,31 +199,44 @@ def get_episode_streams(anime_session_id, episode_session_id):
     """
     Fetches m3u8 stream links for a specific episode using the API handler.
     """
-    logger.info(f"API Request: Fetching streams for anime: {anime_session_id}, episode: {episode_session_id}")
+    logger.info(f"[API] === Episode Streams Request ===")
+    logger.info(f"[API] Anime ID: {anime_session_id}, Episode ID: {episode_session_id}")
+    logger.debug(f"[API] Headers: {dict(request.headers)}")
+    
     streams, error_message = fetch_episode_streams(anime_session_id, episode_session_id)
     
     if error_message:
-        logger.error(f"API Request Failed: fetch_episode_streams returned error: {error_message}")
+        logger.error(f"[API] FAILED: {error_message}")
         return jsonify({'error': error_message}), 500
     
-    # If streams is empty, don't cache (return a flag for client to retry)
     if not streams:
-        logger.warning(f"API Request: No streams found for anime: {anime_session_id}, episode: {episode_session_id}")
+        logger.warning(f"[API] No streams found - returning empty list for client retry")
         return jsonify({'streams': [], 'cached': False})
         
-    logger.info(f"API Request Success: Found {len(streams)} active streams")
-    for stream in streams:
+    logger.info(f"[API] SUCCESS: Found {len(streams)} streams")
+    for idx, stream in enumerate(streams):
+        original_url = stream['url']
         encoded = urllib.parse.quote(stream['url'])
-        stream['url'] = f"/api/proxy-stream?url={encoded}"
+        proxy_url = f"/api/proxy-stream?url={encoded}"
+        stream['url'] = proxy_url
+        logger.debug(f"[API] Stream {idx+1}: {stream.get('resolution')}p -> Proxy URL: {proxy_url[:80]}...")
+        
+    logger.debug(f"[API] Returning {len(streams)} streams to client")
     return jsonify({'streams': streams, 'cached': True})
 
 def rewrite_m3u8(content, base_url):
+    logger.debug(f"[PROXY] Rewriting m3u8 playlist, base_url: {base_url}")
     lines = content.splitlines()
     new_lines = []
+    segment_count = 0
+    uri_count = 0
+    
     for line in lines:
         if line.startswith('#'):
             if 'URI="' in line:
                 def repl(match):
+                    nonlocal uri_count
+                    uri_count += 1
                     ab_url = urllib.parse.urljoin(base_url, match.group(1))
                     enc = urllib.parse.quote(ab_url)
                     return f'URI="/api/proxy-stream?url={enc}"'
@@ -232,17 +245,27 @@ def rewrite_m3u8(content, base_url):
         elif not line.strip():
             new_lines.append(line)
         else:
+            segment_count += 1
             absolute_url = urllib.parse.urljoin(base_url, line)
             encoded_url = urllib.parse.quote(absolute_url)
             proxy_url = f"/api/proxy-stream?url={encoded_url}"
             new_lines.append(proxy_url)
+    
+    logger.debug(f"[PROXY] m3u8 rewrite complete: {len(new_lines)} lines, {segment_count} segments, {uri_count} URIs")
     return "\n".join(new_lines)
 
 @main_bp.route('/api/proxy-stream')
 def proxy_stream():
     url = request.args.get('url')
     if not url:
+        logger.warning("[PROXY] Request missing URL parameter")
         return "URL required", 400
+    
+    decoded_url = urllib.parse.unquote(url)
+    is_m3u8 = 'mpegurl' in (request.args.get('content_type', '') or '') or decoded_url.endswith('.m3u8') or decoded_url.endswith('.m3u')
+    
+    logger.debug(f"[PROXY] {'m3u8 playlist' if is_m3u8 else 'Video segment'} request")
+    logger.debug(f"[PROXY] Target URL: {decoded_url[:100]}...")
         
     headers = {
         'Referer': 'https://kwik.cx/',
@@ -251,26 +274,42 @@ def proxy_stream():
     }
     
     try:
+        logger.debug(f"[PROXY] Fetching from upstream...")
         req = requests.get(url, headers=headers, stream=True, timeout=15)
         req.raise_for_status()
         
         content_type = req.headers.get('Content-Type', '')
-        if 'mpegurl' in content_type or url.endswith('.m3u8') or url.endswith('.m3u'):
+        logger.debug(f"[PROXY] Upstream response: status={req.status_code}, content_type={content_type}")
+        
+        if 'mpegurl' in content_type or decoded_url.endswith('.m3u8') or decoded_url.endswith('.m3u'):
             content = req.text
-            rewritten_content = rewrite_m3u8(content, url)
+            logger.debug(f"[PROXY] Processing m3u8 playlist, length: {len(content)}")
+            rewritten_content = rewrite_m3u8(content, decoded_url)
+            logger.info(f"[PROXY] m3u8 playlist rewritten and returned")
             return Response(rewritten_content, mimetype='application/vnd.apple.mpegurl')
         else:
-            # For streaming video segments seamlessly
+            content_length = req.headers.get('Content-Length', 'unknown')
+            logger.debug(f"[PROXY] Streaming video segment, size: {content_length}")
+            
             def generate():
+                bytes_sent = 0
                 for chunk in req.iter_content(chunk_size=8192):
                     if chunk:
+                        bytes_sent += len(chunk)
                         yield chunk
-            # Add CORS headers so hls.js doesn't complain about the proxy route
+                logger.debug(f"[PROXY] Segment complete, bytes sent: {bytes_sent}")
+            
             response = current_app.response_class(stream_with_context(generate()), content_type=content_type)
             response.headers['Access-Control-Allow-Origin'] = '*'
             return response
+    except requests.exceptions.Timeout:
+        logger.error(f"[PROXY] ERROR: Request timed out for {decoded_url[:80]}...")
+        return "Stream timeout", 504
+    except requests.exceptions.RequestException as e:
+        logger.error(f"[PROXY] ERROR: Request failed for {decoded_url[:80]}...: {e}")
+        return f"Stream error: {e}", 502
     except Exception as e:
-        logger.error(f"Error proxying stream {url}: {e}")
+        logger.error(f"[PROXY] ERROR: Unexpected error proxying {decoded_url[:80]}...: {e}")
         return str(e), 500
 
 @main_bp.route('/proxy-image')

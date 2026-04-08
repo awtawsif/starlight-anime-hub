@@ -1017,6 +1017,24 @@
     window.initWatchOnlinePage = function(config) {
         const { anime_session_id, episode_session_id, episode_number, anime_title } = config;
         
+        console.info('='.repeat(60));
+        console.info('[FRONTEND] === WATCH ONLINE PAGE INITIALIZED ===');
+        console.info(`[FRONTEND] Anime: ${anime_title} (${anime_session_id})`);
+        console.info(`[FRONTEND] Episode: #${episode_number} (${episode_session_id})`);
+        console.info(`[FRONTEND] User Agent: ${navigator.userAgent.substring(0, 50)}...`);
+        console.info(`[FRONTEND] HLS.js available: ${typeof Hls !== 'undefined'}`);
+        console.info(`[FRONTEND] Artplayer available: ${typeof Artplayer !== 'undefined'}`);
+        console.info('[FRONTEND] Debug logging enabled - check console for detailed logs');
+        console.info('='.repeat(60));
+        
+        // Debug: Expose a global toggle for debug logging
+        window.__toggleDebugLogs = function() {
+            const enabled = localStorage.getItem('starlight_debug_logs') !== 'disabled';
+            localStorage.setItem('starlight_debug_logs', enabled ? 'disabled' : 'enabled');
+            console.info(`[FRONTEND] Debug logging ${enabled ? 'DISABLED' : 'ENABLED'}`);
+            return !enabled;
+        };
+        
         const PLAYBACK_POSITION_KEY = `starlightPlaybackPosition_${anime_session_id}_${episode_session_id}`;
         
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1131,14 +1149,40 @@
         }
         
         function fetchStreams(url) {
-            return fetch(url).then(response => response.json());
+            console.debug(`[FRONTEND] Fetching streams from: ${url}`);
+            return fetch(url)
+                .then(response => {
+                    console.debug(`[FRONTEND] Response status: ${response.status}, ok: ${response.ok}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.debug(`[FRONTEND] Received data:`, data);
+                    if (data.error) {
+                        console.error(`[FRONTEND] API Error: ${data.error}`);
+                    } else if (data.streams) {
+                        console.info(`[FRONTEND] Got ${data.streams.length} streams, cached: ${data.cached}`);
+                    } else {
+                        console.warn(`[FRONTEND] No streams in response, cached: ${data.cached}`);
+                    }
+                    return data;
+                });
         }
         
         function loadStream() {
+            console.info('[FRONTEND] === Starting stream load ===');
+            console.debug(`[FRONTEND] Anime: ${anime_session_id}, Episode: ${episode_session_id}`);
+            
             const cacheBuster = `&t=${Date.now()}`;
-            fetchStreams(`/api/episode-streams/${anime_session_id}/${episode_session_id}${cacheBuster}`)
+            const apiUrl = `/api/episode-streams/${anime_session_id}/${episode_session_id}${cacheBuster}`;
+            console.debug(`[FRONTEND] API URL: ${apiUrl}`);
+            
+            fetchStreams(apiUrl)
                 .then(data => {
                     if (data.streams && data.streams.length > 0) {
+                        console.info('[FRONTEND] Streams available, initializing player...');
                         loadingOverlay.style.display = 'none';
                         
                         data.streams.sort((a, b) => {
@@ -1147,7 +1191,13 @@
                             return (resB || 0) - (resA || 0);
                         });
                         
+                        console.debug(`[FRONTEND] Sorted streams (highest first):`);
+                        data.streams.forEach((s, i) => {
+                            console.debug(`[FRONTEND]   ${i+1}. ${s.resolution}p [${s.audio}] ${s.fansub || 'no fansub'}`);
+                        });
+                        
                         const initialStream = data.streams[0].url;
+                        console.debug(`[FRONTEND] Using initial stream: ${initialStream.substring(0, 80)}...`);
                         
                         const qualityLevels = data.streams.map((stream, index) => {
                             const audioLabel = stream.audio ? `[${stream.audio.toUpperCase()}]` : '';
@@ -1181,21 +1231,59 @@
                             quality: qualityLevels,
                             customType: {
                                 hls: function(video, url, art) {
+                                    console.debug(`[FRONTEND] HLS customType handler called with URL: ${url.substring(0, 60)}...`);
+                                    
                                     if (Hls.isSupported()) {
-                                        if (art.hls) art.hls.destroy();
+                                        console.debug('[FRONTEND] Hls.js is supported, creating new instance...');
+                                        if (art.hls) {
+                                            console.debug('[FRONTEND] Destroying existing HLS instance');
+                                            art.hls.destroy();
+                                        }
                                         const hls = new Hls();
-                                        hls.loadSource(url);
-                                        hls.attachMedia(video);
                                         art.hls = hls;
-                                        art.on('destroy', () => hls.destroy());
+                                        art.on('destroy', () => {
+                                            console.debug('[FRONTEND] Artplayer destroy event, cleaning up HLS');
+                                            hls.destroy();
+                                        });
                                         
-                                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                                        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                                            console.info('[FRONTEND] HLS MANIFEST_PARSED:', data);
+                                            console.debug(`[FRONTEND] ${data.levels ? data.levels.length : 0} quality levels found`);
                                             if (art.currentTime > 0) {
+                                                console.debug(`[FRONTEND] Resuming from position: ${art.currentTime}s`);
                                                 video.currentTime = art.currentTime;
                                             }
                                         });
+                                        
+                                        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                                            console.debug(`[FRONTEND] HLS LEVEL_SWITCHED: level=${data.level}, height=${data.height || 'N/A'}`);
+                                        });
+                                        
+                                        hls.on(Hls.Events.ERROR, (event, data) => {
+                                            console.error('[FRONTEND] HLS ERROR:', data.fatal ? 'FATAL' : 'NON-FATAL', data.type, data.details);
+                                            if (data.fatal) {
+                                                console.error('[FRONTEND] Fatal HLS error - player may not recover');
+                                            }
+                                        });
+                                        
+                                        hls.on(Hls.Events.FRAG_LOADING, (event, data) => {
+                                            console.debug(`[FRONTEND] HLS FRAG_LOADING: ${data.frag.url ? data.frag.url.substring(0, 50) : 'unknown'}`);
+                                        });
+                                        
+                                        hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                                            console.debug(`[FRONTEND] HLS FRAG_LOADED: sn=${data.frag.sn}, loaded=${data.loaded}/${data.frag.duration}s`);
+                                        });
+                                        
+                                        console.debug('[FRONTEND] Calling hls.loadSource()...');
+                                        hls.loadSource(url);
+                                        console.debug('[FRONTEND] Calling hls.attachMedia()...');
+                                        hls.attachMedia(video);
+                                        console.debug('[FRONTEND] HLS initialization complete');
                                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                        console.debug('[FRONTEND] Native HLS support (Safari), using video.src');
                                         video.src = url;
+                                    } else {
+                                        console.error('[FRONTEND] No HLS support available!');
                                     }
                                 },
                             },
@@ -1212,6 +1300,7 @@
                                     ],
                                     onSelect: function(item) {
                                         art.playbackRate = item.value;
+                                        console.debug(`[FRONTEND] Playback speed changed to: ${item.value}x`);
                                         return item.html;
                                     },
                                 },
@@ -1219,6 +1308,7 @@
                         });
                         
                         art.on('ready', () => {
+                            console.info('[FRONTEND] Player ready event fired');
                             const playerElement = document.querySelector('.artplayer-app');
                             if (playerElement) {
                                 playerElement.style.fontFamily = 'monospace';
@@ -1226,10 +1316,17 @@
                             showResumePrompt();
                         });
                         
-                        setInterval(savePosition, 10000);
+                        art.on('play', () => {
+                            console.debug(`[FRONTEND] Play event: currentTime=${art.currentTime?.toFixed(2)}s`);
+                        });
                         
-                        art.on('pause', savePosition);
+                        art.on('pause', () => {
+                            console.debug(`[FRONTEND] Pause event: currentTime=${art.currentTime?.toFixed(2)}s`);
+                            savePosition();
+                        });
+                        
                         art.on('ended', () => {
+                            console.info('[FRONTEND] Playback ended');
                             clearSavedPosition();
                             if (!hasMarkedAsWatched) {
                                 hasMarkedAsWatched = true;
@@ -1240,15 +1337,28 @@
                         art.on('timeupdate', () => {
                             if (art.duration && art.currentTime / art.duration >= 0.9 && !hasMarkedAsWatched) {
                                 hasMarkedAsWatched = true;
+                                console.info('[FRONTEND] 90% reached, marking as watched');
                                 localToggleEpisodeWatched();
                             }
                         });
                         
+                        art.on('error', (error) => {
+                            console.error('[FRONTEND] Artplayer error:', error);
+                        });
+                        
+                        art.on('quality', (quality) => {
+                            console.info(`[FRONTEND] Quality switched to: ${quality.html}`);
+                        });
+                        
+                        setInterval(savePosition, 10000);
+                        console.debug('[FRONTEND] Position save interval started (every 10s)');
+                        
                     } else if (!data.cached && retryCount < MAX_RETRIES) {
                         retryCount++;
-                        console.log(`Retrying stream fetch (${retryCount}/${MAX_RETRIES})...`);
+                        console.warn(`[FRONTEND] No streams available, retrying (${retryCount}/${MAX_RETRIES}) in ${retryCount * 1000}ms...`);
                         setTimeout(() => loadStream(), 1000 * retryCount);
                     } else {
+                        console.error('[FRONTEND] No streams available after retries, showing error UI');
                         loadingOverlay.innerHTML = `
                             <div class="text-red-400 font-mono text-center">
                                 <p class="mb-2">Failed to load stream.</p>
@@ -1259,11 +1369,13 @@
                     }
                 })
                 .catch(err => {
-                    console.error('Error fetching stream:', err);
+                    console.error('[FRONTEND] Stream fetch error:', err);
                     if (retryCount < MAX_RETRIES) {
                         retryCount++;
+                        console.warn(`[FRONTEND] Retrying after error (${retryCount}/${MAX_RETRIES}) in ${retryCount * 1000}ms...`);
                         setTimeout(() => loadStream(), 1000 * retryCount);
                     } else {
+                        console.error('[FRONTEND] Max retries reached, showing error UI');
                         loadingOverlay.innerHTML = `
                             <div class="text-red-400 font-mono text-center">
                                 <p class="mb-2">Connection Error.</p>

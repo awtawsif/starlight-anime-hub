@@ -6,7 +6,8 @@ and scraping data from its web pages. It includes functions for searching,
 fetching anime details, retrieving episode lists, and extracting download links.
 """
 
-import requests
+from curl_cffi import requests
+from curl_cffi.requests.exceptions import RequestException as RequestsError
 import re
 from bs4 import BeautifulSoup
 import logging
@@ -114,7 +115,7 @@ def fetch_anime_search_results(query):
         response.raise_for_status()
         json_data = response.json()
         results = json_data.get('data', [])
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"API Request Error during search for '{query}': {e}")
         error_message = f"Could not connect to the anime search service. Please try again later. ({e})"
     except Exception as e:
@@ -250,7 +251,7 @@ def fetch_anime_details(anime_session_id):
             if k not in anime_details:
                 anime_details[k] = 'N/A'
         
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"API Request Error fetching anime details ({detail_url}): {e}")
         error_message = f"Could not fetch anime details. Please check your connection or try again later. ({e})"
     except Exception as e:
@@ -295,7 +296,7 @@ def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
         pagination_data['current_page'] = json_data.get('current_page', page)
         pagination_data['last_page'] = json_data.get('last_page', 1)
         
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
         error_message = f"Could not fetch episode data. Please try again later. ({e})"
     except Exception as e:
@@ -366,14 +367,14 @@ def fetch_episode_download_links(anime_session_id, episode_session_id):
                                     
                         if found_kwik_link:
                             final_downloads.append({'text': text, 'href': found_kwik_link})
-                    except requests.exceptions.RequestException as e:
+                    except RequestsError as e:
                         logger.error(f"Error fetching redirect page {initial_href}: {e}")
                     except Exception as e:
                         logger.error(f"Error parsing redirect page {initial_href}: {e}")
         else:
             logger.warning(f"Download div not found on play page for {play_url}")
 
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"Error fetching play page for downloads ({play_url}): {e}")
         error_message = 'Could not fetch initial download data due to a network issue.'
     except Exception as e:
@@ -401,7 +402,7 @@ def proxy_image_content(image_url):
         response.raise_for_status()
         mimetype = response.headers.get('Content-Type', 'application/octet-stream')
         return response.content, mimetype
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"Error loading image from {image_url}: {e}")
         return None, None
     except Exception as e:
@@ -438,7 +439,7 @@ def fetch_airing_anime(page):
         pagination_data['current_page'] = json_data.get('current_page', page)
         pagination_data['last_page'] = json_data.get('last_page', 1)
 
-    except requests.exceptions.RequestException as e:
+    except RequestsError as e:
         logger.error(f"API Request Error fetching airing anime (page: {page}): {e}")
         error_message = f"Could not fetch airing anime. Please try again later. ({e})"
     except Exception as e:
@@ -485,39 +486,49 @@ def extract_kwik_stream_url(kwik_url):
     Fetches the kwik.cx/e/ embed URL, parses the Dean Edwards packed payload,
     decodes it, and returns the underlying .m3u8 stream link.
     """
+    logger.debug(f"[KWIK] Starting extraction for URL: {kwik_url}")
     headers = REDIRECT_HEADERS.copy()
     headers['Referer'] = 'https://animepahe.pw/'
     try:
-        logger.debug(f"Fetching kwik embed URL: {kwik_url}")
+        logger.debug(f"[KWIK] Fetching kwik embed URL...")
         response = requests.get(kwik_url, headers=headers, timeout=15)
         response.raise_for_status()
         text = response.text
+        logger.debug(f"[KWIK] Response received, content length: {len(text)}")
         
-        # We look for the packed payload: return p}('...', a, c, '...'.split('|')
-        # There might be multiple packed scripts on the page (e.g. cookie logic vs player logic)
         matches = re.finditer(r"return p}\('((?:\\'|[^'])*)',(\d+),(\d+),'([^']*)'\.split\('\|'\)", text)
         found_payload = False
+        payload_count = 0
         
         for match in matches:
             found_payload = True
-            logger.debug(f"Found Dean Edwards JS payload for {kwik_url}")
+            payload_count += 1
+            logger.debug(f"[KWIK] Found Dean Edwards JS payload #{payload_count}")
             p_val = match.group(1).replace("\\'", "'")
             a_val = int(match.group(2))
             c_val = int(match.group(3))
             k_val = match.group(4).split('|')
             
+            logger.debug(f"[KWIK] Unpacking payload #{payload_count} with params: a={a_val}, c={c_val}, k_len={len(k_val)}")
             unpacked = __unpack(p_val, a_val, c_val, k_val, 0, {})
+            logger.debug(f"[KWIK] Unpacked length: {len(unpacked)} chars")
+            
             m3u8_match = re.search(r'(https?://[^"\']+\.m3u8)', unpacked)
             if m3u8_match:
-                logger.debug(f"Successfully extracted .m3u8 stream: {m3u8_match.group(1)}")
-                return m3u8_match.group(1)
+                stream_url = m3u8_match.group(1)
+                logger.info(f"[KWIK] SUCCESS: Extracted .m3u8 stream: {stream_url}")
+                return stream_url
+            else:
+                logger.debug(f"[KWIK] No .m3u8 found in unpacked payload #{payload_count}")
                 
         if found_payload:
-            logger.error(f"Failed to find .m3u8 in ANY unpacked JS for {kwik_url}")
+            logger.error(f"[KWIK] FAILED: Found {payload_count} payloads but no .m3u8 in any of them")
         else:
-            logger.error(f"Dean Edwards packing format not found in {kwik_url}. Page snippet: {text[:200]}")
+            logger.error(f"[KWIK] FAILED: Dean Edwards packing format not found. Page snippet: {text[:500]}")
+    except RequestsError as e:
+        logger.error(f"[KWIK] ERROR: Request failed for {kwik_url}: {e}")
     except Exception as e:
-        logger.error(f"Error extracting stream from {kwik_url}: {e}")
+        logger.error(f"[KWIK] ERROR: Unexpected error extracting stream from {kwik_url}: {e}")
     return None
 
 
@@ -527,40 +538,63 @@ def fetch_episode_streams(anime_session_id, episode_session_id):
     Then extracts the direct .m3u8 URLs using extract_kwik_stream_url.
     Returns a list of dicts with resolution, audio, fansub, and the extracted m3u8 stream.
     """
-    play_url = f"https://animepahe.pw/play/{anime_session_id}/{episode_session_id}"
+    # Strip any &t= or ?t= timestamp params appended by AnimePahe — they belong as
+    # query params on the URL, not as part of the path segment.
+    clean_episode_id = episode_session_id.split('&')[0].split('?')[0]
+    play_url = f"https://animepahe.pw/play/{anime_session_id}/{clean_episode_id}"
     streams = []
     error_message = None
     
+    logger.debug(f"[STREAMS] Starting fetch for anime: {anime_session_id}, episode: {clean_episode_id}")
+    logger.debug(f"[STREAMS] Play URL: {play_url}")
+    
     try:
+        logger.debug(f"[STREAMS] Fetching play page...")
         response_play = requests.get(play_url, headers=API_HEADERS, timeout=15)
         response_play.raise_for_status()
+        logger.debug(f"[STREAMS] Play page fetched, status: {response_play.status_code}, content length: {len(response_play.text)}")
 
         soup = BeautifulSoup(response_play.text, 'lxml')
         resolution_menu = soup.find('div', id='resolutionMenu')
 
         if resolution_menu:
             buttons = resolution_menu.find_all('button', class_='dropdown-item')
-            for btn in buttons:
+            logger.debug(f"[STREAMS] Found {len(buttons)} stream buttons in resolution menu")
+            
+            for idx, btn in enumerate(buttons):
                 kwik_src = btn.get('data-src')
+                resolution = btn.get('data-resolution', 'unknown')
+                audio = btn.get('data-audio', 'unknown')
+                fansub = btn.get('data-fansub', 'unknown')
+                
+                logger.debug(f"[STREAMS] Button {idx+1}: resolution={resolution}, audio={audio}, fansub={fansub}")
+                
                 if not kwik_src:
+                    logger.debug(f"[STREAMS] Button {idx+1}: No kwik_src found, skipping")
                     continue
                 
+                logger.debug(f"[STREAMS] Button {idx+1}: Extracting stream from kwik URL...")
                 stream_url = extract_kwik_stream_url(kwik_src)
                 if stream_url:
                     streams.append({
-                        'resolution': btn.get('data-resolution', 'unknown'),
-                        'audio': btn.get('data-audio', 'unknown'),
-                        'fansub': btn.get('data-fansub', 'unknown'),
+                        'resolution': resolution,
+                        'audio': audio,
+                        'fansub': fansub,
                         'url': stream_url
                     })
+                    logger.info(f"[STREAMS] Button {idx+1}: SUCCESS - Added stream {resolution}p")
+                else:
+                    logger.warning(f"[STREAMS] Button {idx+1}: FAILED - No stream extracted")
         else:
-             logger.warning(f"Dropdown menu for streams not found on {play_url}")
+             logger.error(f"[STREAMS] FAILED: resolutionMenu div not found on page")
              
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching play page for streams ({play_url}): {e}")
+        logger.info(f"[STREAMS] Complete: {len(streams)} streams extracted out of attempted buttons")
+             
+    except RequestsError as e:
+        logger.error(f"[STREAMS] ERROR: Request failed - {e}")
         error_message = 'Could not access the streaming page.'
     except Exception as e:
-        logger.error(f"Unexpected error extracting streams ({play_url}): {e}")
+        logger.error(f"[STREAMS] ERROR: Unexpected - {e}")
         error_message = 'An unexpected error occurred while parsing media streams.'
 
     return streams, error_message
