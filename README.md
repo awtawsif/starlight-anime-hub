@@ -13,6 +13,8 @@ Built with Flask for a robust backend and a dynamic frontend powered by Tailwind
 - **Currently Airing Anime:** Stay up-to-date with the latest episodes of ongoing series, complete with pagination for easy browsing.
 - **Episode Listings & Downloads:** Browse episodes for any anime and retrieve direct download links for convenient offline viewing.
 - **Client-Side Bookmarking:** Save your favorite anime directly in your browser's local storage for quick access.
+- **Continue Watching:** Resume watching episodes where you left off with progress tracking.
+- **Watch Online:** Stream anime episodes directly within the application with quality selection.
 - **Responsive Design:** Enjoy a consistent and optimized experience on desktops, tablets, and mobile devices, thanks to Tailwind CSS.
 - **Dynamic Modals:** Interactive modals for episode options and download links enhance user experience.
 - **Image Proxying:** Securely loads external images through the backend to bypass CORS restrictions.
@@ -26,6 +28,7 @@ Built with Flask for a robust backend and a dynamic frontend powered by Tailwind
 - **Flask:** Web framework for building the application's routes and logic.
 - **Flask-Caching:** Adds caching support to Flask applications.
 - **Requests:** For making HTTP requests to external APIs and web scraping.
+- **curl_cffi:** Async HTTP client with impersonation support for reliable API calls.
 - **BeautifulSoup4 & LXML:** Powerful libraries for parsing HTML content and extracting data.
 - **Gunicorn:** WSGI HTTP Server for deploying the Flask application.
 
@@ -34,6 +37,7 @@ Built with Flask for a robust backend and a dynamic frontend powered by Tailwind
 - **HTML5:** Structure of the web pages.
 - **Tailwind CSS:** A utility-first CSS framework for rapid UI development and responsive design.
 - **Vanilla JavaScript:** For interactive elements, API calls, and client-side logic (e.g., bookmarking, modals).
+- **@vercel/analytics:** Privacy-friendly analytics for tracking page views and engagement.
 
 ## ⚙️ Getting Started
 
@@ -227,6 +231,7 @@ starlight-anime-hub/
         ├── continue_watching.html# Template for displaying continue watching list.
         ├── episode_selection.html# Template for episode selection and download options.
         ├── index.html            # Homepage template.
+        ├── watch_online.html     # Template for streaming anime episodes online.
         ├── navbar.html           # Navigation bar template.
         └── search_results.html   # Template for displaying anime search results.
 ```
