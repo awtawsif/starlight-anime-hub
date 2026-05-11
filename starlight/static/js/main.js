@@ -1175,7 +1175,7 @@
             console.info('[FRONTEND] === Starting stream load ===');
             console.debug(`[FRONTEND] Anime: ${anime_session_id}, Episode: ${episode_session_id}`);
             
-            const cacheBuster = `&t=${Date.now()}`;
+            const cacheBuster = `?t=${Date.now()}`;
             const apiUrl = `/api/episode-streams/${anime_session_id}/${episode_session_id}${cacheBuster}`;
             console.debug(`[FRONTEND] API URL: ${apiUrl}`);
             
@@ -1259,10 +1259,21 @@
                                             console.debug(`[FRONTEND] HLS LEVEL_SWITCHED: level=${data.level}, height=${data.height || 'N/A'}`);
                                         });
                                         
+                                        let hlsRecoveryAttempts = 0;
+                                        const HLS_MAX_RECOVERY_ATTEMPTS = 3;
                                         hls.on(Hls.Events.ERROR, (event, data) => {
                                             console.error('[FRONTEND] HLS ERROR:', data.fatal ? 'FATAL' : 'NON-FATAL', data.type, data.details);
                                             if (data.fatal) {
-                                                console.error('[FRONTEND] Fatal HLS error - player may not recover');
+                                                hlsRecoveryAttempts++;
+                                                if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsRecoveryAttempts <= HLS_MAX_RECOVERY_ATTEMPTS) {
+                                                    console.warn(`[FRONTEND] HLS network error, retrying (${hlsRecoveryAttempts}/${HLS_MAX_RECOVERY_ATTEMPTS})...`);
+                                                    hls.startLoad();
+                                                } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsRecoveryAttempts <= HLS_MAX_RECOVERY_ATTEMPTS) {
+                                                    console.warn(`[FRONTEND] HLS media error, recovering (${hlsRecoveryAttempts}/${HLS_MAX_RECOVERY_ATTEMPTS})...`);
+                                                    hls.recoverMediaError();
+                                                } else {
+                                                    console.error('[FRONTEND] HLS fatal error - unrecoverable');
+                                                }
                                             }
                                         });
                                         

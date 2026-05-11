@@ -13,6 +13,10 @@ from bs4 import BeautifulSoup
 import logging
 from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS, REDIRECT_HEADERS
 
+# Shared session that maintains cookies across kwik.cx and owocdn.top requests
+# Exported for use by routes.py proxy
+kwik_session = requests.Session()
+
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 
@@ -487,11 +491,16 @@ def extract_kwik_stream_url(kwik_url):
     decodes it, and returns the underlying .m3u8 stream link.
     """
     logger.debug(f"[KWIK] Starting extraction for URL: {kwik_url}")
-    headers = REDIRECT_HEADERS.copy()
-    headers['Referer'] = 'https://animepahe.pw/'
+    session = kwik_session
+    kwik_headers = {
+        'Referer': 'https://animepahe.pw/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
     try:
         logger.debug(f"[KWIK] Fetching kwik embed URL...")
-        response = requests.get(kwik_url, headers=headers, timeout=15)
+        response = session.get(kwik_url, headers=kwik_headers, timeout=15)
         response.raise_for_status()
         text = response.text
         logger.debug(f"[KWIK] Response received, content length: {len(text)}")

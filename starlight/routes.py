@@ -17,7 +17,8 @@ from .api_handlers import (
     fetch_episode_download_links,
     proxy_image_content,
     fetch_airing_anime,
-    fetch_episode_streams
+    fetch_episode_streams,
+    kwik_session,
 )
 import logging
 import asyncio
@@ -262,34 +263,52 @@ def proxy_stream():
         return "URL required", 400
     
     decoded_url = urllib.parse.unquote(url)
-    is_m3u8 = 'mpegurl' in (request.args.get('content_type', '') or '') or decoded_url.endswith('.m3u8') or decoded_url.endswith('.m3u')
+    is_m3u8_url = decoded_url.endswith('.m3u8') or decoded_url.endswith('.m3u')
     
-    logger.debug(f"[PROXY] {'m3u8 playlist' if is_m3u8 else 'Video segment'} request")
+    logger.debug(f"[PROXY] {'m3u8 playlist' if is_m3u8_url else 'Video segment'} request")
     logger.debug(f"[PROXY] Target URL: {decoded_url[:100]}...")
         
-    headers = {
-        'Referer': 'https://kwik.cx/',
-        'Origin': 'https://kwik.cx',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    
     try:
+        # Use shared session carrying cookies from kwik.cx (populated by fetch_episode_streams)
+        session = kwik_session
+        logger.debug(f"[PROXY] Using shared kwik session, cookies: {dict(session.cookies)}")
+
+        # Common browser-like headers
+        browser_headers = {
+            'Referer': 'https://kwik.cx/',
+            'Origin': 'https://kwik.cx',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+        }
+        
         logger.debug(f"[PROXY] Fetching from upstream...")
-        req = requests.get(url, headers=headers, stream=True, timeout=15)
-        req.raise_for_status()
         
-        content_type = req.headers.get('Content-Type', '')
-        logger.debug(f"[PROXY] Upstream response: status={req.status_code}, content_type={content_type}")
-        
-        if 'mpegurl' in content_type or decoded_url.endswith('.m3u8') or decoded_url.endswith('.m3u'):
+        if is_m3u8_url:
+            # m3u8 files are small — no streaming needed, use session with cookies
+            req = session.get(url, headers=browser_headers, timeout=15)
+            req.raise_for_status()
+            content_type = req.headers.get('Content-Type', '')
             content = req.text
-            logger.debug(f"[PROXY] Processing m3u8 playlist, length: {len(content)}")
+            logger.debug(f"[PROXY] m3u8 response: status={req.status_code}, content_type={content_type}, length={len(content)}, start={repr(content[:100])}")
+            
+            if not content.startswith('#EXTM3U'):
+                logger.error(f"[PROXY] Upstream returned non-m3u8 content — likely blocked")
+                return "Upstream returned invalid playlist", 502
+            
             rewritten_content = rewrite_m3u8(content, decoded_url)
             logger.info(f"[PROXY] m3u8 playlist rewritten and returned")
             return Response(rewritten_content, mimetype='application/vnd.apple.mpegurl')
         else:
+            # Video segments — stream through
+            req = session.get(url, headers=browser_headers, stream=True, timeout=15)
+            req.raise_for_status()
+            content_type = req.headers.get('Content-Type', '')
             content_length = req.headers.get('Content-Length', 'unknown')
-            logger.debug(f"[PROXY] Streaming video segment, size: {content_length}")
+            logger.debug(f"[PROXY] Streaming video segment, size: {content_length}, content_type: {content_type}")
             
             def generate():
                 bytes_sent = 0
