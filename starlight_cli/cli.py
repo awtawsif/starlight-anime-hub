@@ -3,6 +3,7 @@ import sys
 
 import click
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
@@ -168,9 +169,10 @@ def _pick_quality(items: list[dict]) -> dict:
 
     console.print("\n[bold]Available qualities:[/]")
     for (audio, fansub), group in groups.items():
-        header = f"[{audio}]"
+        parts = [f"[{audio or '?'}]"]
         if fansub:
-            header += f" {fansub}"
+            parts.append(fansub)
+        header = escape(" ".join(parts))
         console.print(f"  [bold]{header}:[/]")
         for idx, item in group:
             console.print(f"    {idx}. {item.get('resolution', '?')}p")
