@@ -2,6 +2,16 @@
 
 A web application for discovering and downloading anime. Built with Flask and Tailwind CSS, featuring a dark-themed, responsive interface.
 
+## ⚡ Want a CLI instead? Check out the `cli-version` branch!
+
+```bash
+git checkout cli-version
+pip install -e .
+starlight watch onpi   # watch One Piece in your terminal
+```
+
+No browser, no Flask, no JavaScript — just a terminal, [mpv](https://mpv.io), and your favorite anime. Same data source (`animepahe.pw`), **zero bloat**.
+
 ## Live Demo
 
 [https://starlight-anime-hub.vercel.app/](https://starlight-anime-hub.vercel.app/)
