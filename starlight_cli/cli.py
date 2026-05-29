@@ -136,13 +136,9 @@ def _pick_episode(session_id: str):
 
     table = Table()
     table.add_column("#", style="cyan")
-    table.add_column("Title", style="white")
 
     for ep in all_ep:
-        table.add_row(
-            str(ep.get("episode", "?")),
-            ep.get("title", "") or "",
-        )
+        table.add_row(str(ep.get("episode", "?")))
 
     console.print(table)
     choice = Prompt.ask("Enter episode number")
@@ -348,8 +344,10 @@ def detail(anime):
             t = Table(title=section)
             t.add_column("Title", style="white")
             t.add_column("Type")
-            for item in items:
+            for item in items[:4]:
                 t.add_row(item.get("title", "N/A"), item.get("type", "N/A"))
+            if len(items) > 4:
+                t.add_row(f"[dim]... and {len(items) - 4} more[/]", "")
             console.print(t)
 
 
@@ -378,14 +376,12 @@ def episodes(anime, page, sort):
 
     table = Table(title=f"{title}  —  Episodes (page {cur}/{last})")
     table.add_column("#", style="cyan")
-    table.add_column("Title", style="white")
     table.add_column("Duration")
     table.add_column("Filler")
 
     for ep in batch:
         table.add_row(
             str(ep.get("episode", "")),
-            ep.get("title", "N/A") or "",
             str(ep.get("duration", "")),
             "[red]Yes[/]" if ep.get("filler") else "",
         )
