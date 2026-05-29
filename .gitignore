@@ -4,3 +4,4 @@ __pycache__/
 node_modules
 .idx
 *.egg-info/
+AGENTS.md
