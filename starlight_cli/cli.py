@@ -1,3 +1,4 @@
+import re
 import sys
 
 import click
@@ -20,6 +21,94 @@ from starlight_cli.player import play
 
 console = Console()
 err_console = Console(stderr=True)
+
+UUID_RE = re.compile(r"^[a-f0-9-]{36}$")
+
+
+def _slugify(title: str) -> str:
+    s = title.lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s.strip())
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-")
+
+
+def _is_uuid(s: str) -> bool:
+    return bool(UUID_RE.match(s))
+
+
+def _generate_code(title: str, existing: set) -> str | None:
+    words = re.findall(r"[a-zA-Z]+", title)
+    if not words:
+        return None
+
+    if len(words) == 1:
+        base = words[0][:4].lower()
+    else:
+        base = (words[0][:2] + words[1][:2]).lower()
+
+    if base not in existing:
+        return base
+
+    n = 2
+    while f"{base}{n}" in existing:
+        n += 1
+    return f"{base}{n}"
+
+
+def _assign_code(title: str, session_id: str) -> str | None:
+    existing_code = state.get_session_code(session_id)
+    if existing_code:
+        return existing_code
+
+    existing = set(state.get_all_codes().keys())
+    code = _generate_code(title, existing)
+    if not code:
+        return None
+
+    state.save_code(code, session_id, title)
+    return code
+
+
+def _resolve_anime(identifier: str):
+    info = state.get_code_info(identifier)
+    if info:
+        return info["session_id"], info["title"]
+
+    if _is_uuid(identifier):
+        details, error = fetch_anime_details(identifier)
+        if not error:
+            title = details.get("title", identifier)
+            return identifier, title
+
+    results, error = fetch_anime_search_results(identifier)
+    if error:
+        err_console.print(f"[red]Error:[/] {error}")
+        sys.exit(1)
+
+    if not results:
+        err_console.print(
+            f"[red]Could not resolve '{identifier}'. Try searching first.[/]"
+        )
+        sys.exit(1)
+
+    slug_map = {_slugify(r["title"]): r for r in results}
+    if identifier in slug_map:
+        r = slug_map[identifier]
+        return r["session"], r["title"]
+
+    if len(results) == 1:
+        r = results[0]
+        return r["session"], r["title"]
+
+    console.print("[yellow]Multiple matches. Pick one:[/]")
+    for i, r in enumerate(results, 1):
+        console.print(f"  {i}. {r['title']} [dim]({r.get('year', '')})[/]")
+    choice = Prompt.ask(
+        "Select", choices=[str(i) for i in range(1, len(results) + 1)]
+    )
+    r = results[int(choice) - 1]
+    return r["session"], r["title"]
 
 
 def _fetch_all_episodes(session_id: str, sort: str = "episode_asc"):
@@ -47,16 +136,11 @@ def _pick_episode(session_id: str):
     table = Table()
     table.add_column("#", style="cyan")
     table.add_column("Title", style="white")
-    table.add_column("Duration")
-    table.add_column("Filler")
 
     for ep in all_ep:
-        filler = "[red]Yes[/]" if ep.get("filler") else ""
         table.add_row(
             str(ep.get("episode", "?")),
             ep.get("title", "") or "",
-            str(ep.get("duration", "")),
-            filler,
         )
 
     console.print(table)
@@ -84,7 +168,9 @@ def _pick_quality(downloads: list[dict]) -> dict:
     return downloads[int(choice) - 1]
 
 
-def _resolve_and_play(session_id: str, episode_id: str | None, do_play: bool):
+def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
+    session_id, _ = _resolve_anime(anime)
+
     if not episode_id:
         episode_id = _pick_episode(session_id)
 
@@ -116,10 +202,6 @@ def _resolve_and_play(session_id: str, episode_id: str | None, do_play: bool):
         console.print(f"\n[bold green]Video URL:[/] {video_url}")
 
 
-# ---------------------------------------------------------------------------
-# CLI commands
-# ---------------------------------------------------------------------------
-
 @click.group()
 def cli():
     pass
@@ -138,7 +220,7 @@ def search(query):
         return
 
     table = Table(title=f"Search results for '{query}'")
-    table.add_column("ID", style="cyan", width=38, no_wrap=True)
+    table.add_column("Code", style="cyan", width=6)
     table.add_column("Title", style="white")
     table.add_column("Type")
     table.add_column("Episodes")
@@ -146,8 +228,9 @@ def search(query):
     table.add_column("Status")
 
     for r in results:
+        code = _assign_code(r.get("title", ""), r.get("session", "")) or "?"
         table.add_row(
-            str(r.get("session", r.get("id", ""))),
+            code,
             r.get("title", "N/A"),
             r.get("type", "N/A"),
             str(r.get("episodes", "N/A")),
@@ -157,7 +240,8 @@ def search(query):
 
     console.print(table)
     console.print(
-        "\nUse [bold]starlight detail <ID>[/] for more information."
+        "\nUse [bold]starlight detail <code>[/] for more information, "
+        "or [bold]starlight watch <code>[/] to start watching."
     )
 
 
@@ -176,18 +260,22 @@ def airing(page):
     cur = pagination.get("current_page", 1)
     last = pagination.get("last_page", 1)
 
-    table = Table(
-        title=f"Latest Releases (page {cur}/{last})",
-    )
-    table.add_column("Anime ID", style="cyan", width=38, no_wrap=True)
+    table = Table(title=f"Latest Releases (page {cur}/{last})")
+    table.add_column("Code", style="cyan", width=6)
     table.add_column("Title", style="white")
     table.add_column("Episode")
     table.add_column("Fansub")
     table.add_column("Aired")
 
     for a in anime:
+        code = (
+            _assign_code(
+                a.get("anime_title", ""), a.get("anime_session", "")
+            )
+            or ""
+        )
         table.add_row(
-            a.get("anime_session", "N/A"),
+            code,
             a.get("anime_title", "N/A"),
             str(a.get("episode", "")),
             a.get("fansub", ""),
@@ -198,12 +286,16 @@ def airing(page):
 
 
 @cli.command()
-@click.argument("session_id")
-def detail(session_id):
+@click.argument("anime")
+def detail(anime):
+    session_id, title = _resolve_anime(anime)
     details, error = fetch_anime_details(session_id)
     if error:
         err_console.print(f"[red]Error:[/] {error}")
         sys.exit(1)
+
+    code = state.get_session_code(session_id)
+    panel_title = f"{title}" + (f"  [dim]({code})[/]" if code else "")
 
     info = (
         f"[bold]Title:[/]       {details.get('title', 'N/A')}\n"
@@ -221,9 +313,7 @@ def detail(session_id):
         f"[bold]Japanese:[/]    {details.get('japanese', 'N/A')}"
     )
 
-    console.print(
-        Panel(info, title=details.get("title"), border_style="cyan")
-    )
+    console.print(Panel(info, title=panel_title, border_style="cyan"))
     console.print(
         Panel(
             details.get("synopsis", "No synopsis available."),
@@ -232,31 +322,31 @@ def detail(session_id):
         )
     )
 
-    for section, key in [("Relations", "relations"), ("Recommendations", "recommendations")]:
+    for section, key in [
+        ("Relations", "relations"),
+        ("Recommendations", "recommendations"),
+    ]:
         items = details.get(key, [])
         if items:
             t = Table(title=section)
             t.add_column("Title", style="white")
             t.add_column("Type")
-            t.add_column("ID", width=38, no_wrap=True)
             for item in items:
-                t.add_row(
-                    item.get("title", "N/A"),
-                    item.get("type", "N/A"),
-                    item.get("session_id", "N/A"),
-                )
+                t.add_row(item.get("title", "N/A"), item.get("type", "N/A"))
             console.print(t)
 
 
 @cli.command()
-@click.argument("session_id")
+@click.argument("anime")
 @click.option("--page", default=1, type=int)
 @click.option(
     "--sort",
     default="episode_asc",
     type=click.Choice(["episode_asc", "episode_desc"]),
 )
-def episodes(session_id, page, sort):
+def episodes(anime, page, sort):
+    session_id, title = _resolve_anime(anime)
+
     batch, pagination, error = fetch_episode_list(session_id, page, sort)
     if error:
         err_console.print(f"[red]Error:[/] {error}")
@@ -269,12 +359,11 @@ def episodes(session_id, page, sort):
     cur = pagination.get("current_page", 1)
     last = pagination.get("last_page", 1)
 
-    table = Table(title=f"Episodes (page {cur}/{last})")
+    table = Table(title=f"{title}  —  Episodes (page {cur}/{last})")
     table.add_column("#", style="cyan")
     table.add_column("Title", style="white")
     table.add_column("Duration")
     table.add_column("Filler")
-    table.add_column("Session ID", width=38, no_wrap=True)
 
     for ep in batch:
         table.add_row(
@@ -282,29 +371,24 @@ def episodes(session_id, page, sort):
             ep.get("title", "N/A") or "",
             str(ep.get("duration", "")),
             "[red]Yes[/]" if ep.get("filler") else "",
-            ep.get("session", "N/A"),
         )
 
     console.print(table)
 
 
 @cli.command()
-@click.argument("session_id")
+@click.argument("anime")
 @click.argument("episode_id", required=False)
-def watch(session_id, episode_id):
-    _resolve_and_play(session_id, episode_id, do_play=True)
+def watch(anime, episode_id):
+    _resolve_and_play(anime, episode_id, do_play=True)
 
 
 @cli.command()
-@click.argument("session_id")
+@click.argument("anime")
 @click.argument("episode_id", required=False)
-def download(session_id, episode_id):
-    _resolve_and_play(session_id, episode_id, do_play=False)
+def download(anime, episode_id):
+    _resolve_and_play(anime, episode_id, do_play=False)
 
-
-# ---------------------------------------------------------------------------
-# Bookmarks subcommand group
-# ---------------------------------------------------------------------------
 
 @cli.group()
 def bookmarks():
@@ -319,38 +403,42 @@ def bookmarks_list():
         return
 
     table = Table(title="Bookmarks")
-    table.add_column("Session ID", style="cyan", width=38, no_wrap=True)
+    table.add_column("Code", style="cyan", width=6)
     table.add_column("Title", style="white")
+
     for aid, title in bm.items():
-        table.add_row(aid, title)
+        code = state.get_session_code(aid) or ""
+        table.add_row(code, title)
+
     console.print(table)
 
 
 @bookmarks.command()
-@click.argument("anime_id")
-def add(anime_id):
-    if anime_id in state.get_bookmarks():
+@click.argument("anime")
+def add(anime):
+    session_id, title = _resolve_anime(anime)
+    bm = state.get_bookmarks()
+    if session_id in bm:
         console.print("[yellow]Already bookmarked.[/]")
         return
-    details, error = fetch_anime_details(anime_id)
-    title = details.get("title", anime_id) if not error else anime_id
-    state.add_bookmark(anime_id, title)
-    console.print(f"[green]Bookmarked:[/] {title}")
+
+    state.add_bookmark(session_id, title)
+    _assign_code(title, session_id)
+    code = state.get_session_code(session_id) or ""
+    console.print(f"[green]Bookmarked:[/] {title} [dim]({code})[/]")
 
 
 @bookmarks.command()
-@click.argument("anime_id")
-def remove(anime_id):
-    if anime_id not in state.get_bookmarks():
+@click.argument("anime")
+def remove(anime):
+    session_id, title = _resolve_anime(anime)
+    bm = state.get_bookmarks()
+    if session_id not in bm:
         console.print("[yellow]Not bookmarked.[/]")
         return
-    state.remove_bookmark(anime_id)
-    console.print("[green]Removed bookmark.[/]")
+    state.remove_bookmark(session_id)
+    console.print(f"[green]Removed bookmark:[/] {title}")
 
-
-# ---------------------------------------------------------------------------
-# Continue-watching
-# ---------------------------------------------------------------------------
 
 @cli.command()
 def continue_watching():
@@ -360,7 +448,12 @@ def continue_watching():
         return
 
     for aid, title in bm.items():
-        console.print(f"\n[bold cyan]{title}[/] [dim]({aid})[/]")
+        code = state.get_session_code(aid) or ""
+        console.print(
+            f"\n[bold cyan]{title}[/] [dim]({code})[/]"
+            if code
+            else f"\n[bold cyan]{title}[/]"
+        )
         all_ep = _fetch_all_episodes(aid)
         if not all_ep:
             continue

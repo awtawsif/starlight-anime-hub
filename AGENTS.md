@@ -29,8 +29,17 @@ gunicorn run:app      # Production (matching Procfile)
 | `starlight_cli/cli.py` | All CLI commands: `search`, `airing`, `detail`, `episodes`, `watch`, `download`, `bookmarks`, `continue-watching` |
 | `starlight_cli/kwik.py` | kwik.cx video URL extractor (decrypt JS obfuscation) |
 | `starlight_cli/player.py` | mpv subprocess wrapper |
-| `starlight_cli/state.py` | Persistent state via `~/.starlight/state.json` (bookmarks, watched) |
+| `starlight_cli/state.py` | Persistent state via `~/.starlight/state.json` (bookmarks, watched, codes) |
 | `setup.py` | Pip-installable entry point: `starlight=starlight_cli.cli:cli` |
+
+## Short codes (CLI only)
+Search/airing generates 4-6 char codes (`onpi` for One Piece, `moea` for Monster Eater).
+Commands accept three identifier formats, resolved in order:
+1. **Short code** — fastest, no API call, persisted in `~/.starlight/state.json`
+2. **UUID** — backward compatible with the web app's session IDs
+3. **Slug** — kebab-case title (`one-piece`, `frieren-beyond-journeys-end`), triggers search API + auto-pick if unique
+
+Short codes are generated once and reused across sessions. Code format: first 2 chars of first 2 words, dedup with a number suffix (e.g. `onpi`, `onpi2`).
 
 ## Critical Gotchas
 
