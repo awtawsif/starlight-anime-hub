@@ -10,7 +10,7 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import logging
-from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS, REDIRECT_HEADERS
+from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -313,109 +313,37 @@ def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
 
     return episodes, pagination_data, error_message
 
-def fetch_episode_download_links(anime_session_id, episode_session_id):
-    """
-    Fetches the animepahe.pw play page for a specific episode,
-    parses it to find initial download links, then follows those links
-    to extract the real kwik.cx download URLs from embedded JavaScript.
-
-    Args:
-        anime_session_id (str): The session ID of the anime.
-        episode_session_id (str): The session ID of the specific episode.
-
-    Returns:
-        tuple: A tuple containing a list of download links (dict) and an error message.
-               Returns ([], error_message) on failure, (download_links, None) on success.
-    """
-    play_url = f"https://animepahe.pw/play/{anime_session_id}/{episode_session_id}"
-    final_downloads = []
+def fetch_episode_streams(anime_session_id, episode_session_id):
+    clean_episode_id = episode_session_id.split("&")[0].split("?")[0]
+    play_url = f"https://animepahe.pw/play/{anime_session_id}/{clean_episode_id}"
+    streams = []
     error_message = None
-    
+
     try:
-        # 1. Fetch the animepahe.pw play page HTML
-        response_play_page = requests.get(play_url, headers=API_HEADERS, timeout=15)
-        response_play_page.raise_for_status()
+        resp = requests.get(play_url, headers=API_HEADERS, timeout=15)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'lxml')
+        menu = soup.find('div', id='resolutionMenu')
 
-        soup_play_page = BeautifulSoup(response_play_page.text, 'html.parser')
-
-        # Find the div with id="pickDownload"
-        download_div = soup_play_page.find('div', id='pickDownload')
-
-        if download_div:
-            # Find all initial download links (e.g., pahe.win links)
-            initial_links = download_div.find_all('a', class_='dropdown-item')
-            
-            for link_tag in initial_links:
-                initial_href = link_tag.get('href')
-                text = link_tag.get_text(strip=True)
-                
-                if initial_href:
-                    try:
-                        # 2. Fetch the redirect page (e.g., pahe.win/cvhun)
-                        redirect_headers = REDIRECT_HEADERS.copy()
-                        redirect_headers['Referer'] = play_url # Indicate where the request is coming from
-                        
-                        response_redirect_page = requests.get(initial_href, headers=redirect_headers, timeout=15)
-                        response_redirect_page.raise_for_status()
-                        soup_redirect_page = BeautifulSoup(response_redirect_page.text, 'html.parser')
-
-                        # 3. Find the script containing the real download link
-                        script_tags = soup_redirect_page.find_all('script', type='text/javascript')
-                        
-                        found_kwik_link = None
-                        if script_tags:
-                            target_script = script_tags[0]
-                            script_content = target_script.string
-
-                            if script_content and 'kwik.cx' in script_content:
-                                # Regex to find https://kwik.cx/f/ followed by alphanumeric characters
-                                match = re.search(r'https:\/\/kwik\.cx\/f\/[a-zA-Z0-9]+', script_content)
-                                if match:
-                                    found_kwik_link = match.group(0)
-                                    
-                        if found_kwik_link:
-                            final_downloads.append({'text': text, 'href': found_kwik_link})
-                    except requests.exceptions.RequestException as e:
-                        logger.error(f"Error fetching redirect page {initial_href}: {e}")
-                    except Exception as e:
-                        logger.error(f"Error parsing redirect page {initial_href}: {e}")
+        if menu:
+            buttons = menu.find_all('button', class_='dropdown-item')
+            for btn in buttons:
+                kwik = btn.get('data-src')
+                if kwik:
+                    streams.append({
+                        'resolution': btn.get('data-resolution', 'unknown'),
+                        'audio': btn.get('data-audio', 'unknown'),
+                        'fansub': btn.get('data-fansub', 'unknown'),
+                        'kwik_url': kwik,
+                    })
         else:
-            logger.warning(f"Download div not found on play page for {play_url}")
-
+            error_message = 'resolutionMenu not found on play page'
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching play page for downloads ({play_url}): {e}")
-        error_message = 'Could not fetch initial download data due to a network issue.'
+        error_message = f'Could not fetch play page: {e}'
     except Exception as e:
-        logger.error(f"An unexpected error occurred parsing initial downloads ({play_url}): {e}")
-        error_message = 'An unexpected error occurred while parsing initial downloads.'
+        error_message = f'Unexpected error: {e}'
 
-    return final_downloads, error_message
-
-def proxy_image_content(image_url):
-    """
-    Proxies images from the animepahe.pw domain to bypass CORS restrictions.
-
-    Args:
-        image_url (str): The URL of the image to proxy.
-
-    Returns:
-        tuple: A tuple containing image content (bytes) and MIME type (str) on success,
-               or (None, None) on failure.
-    """
-    if not image_url:
-        return None, None
-
-    try:
-        response = requests.get(image_url, headers=API_HEADERS, stream=True, timeout=10)
-        response.raise_for_status()
-        mimetype = response.headers.get('Content-Type', 'application/octet-stream')
-        return response.content, mimetype
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error loading image from {image_url}: {e}")
-        return None, None
-    except Exception as e:
-        logger.error(f"An unexpected error occurred while proxying image {image_url}: {e}")
-        return None, None
+    return streams, error_message
 
 def fetch_airing_anime(page):
     """

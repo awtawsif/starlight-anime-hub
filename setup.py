@@ -11,6 +11,7 @@ setup(
         "requests>=2.32",
         "beautifulsoup4>=4.13",
         "lxml>=6.0",
+        "curl_cffi>=0.15.0",
     ],
     entry_points={
         "console_scripts": [

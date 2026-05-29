@@ -11,12 +11,12 @@ from starlight_cli.api import (
     fetch_airing_anime,
     fetch_anime_details,
     fetch_anime_search_results,
-    fetch_episode_download_links,
     fetch_episode_list,
+    fetch_episode_streams,
 )
 
 from starlight_cli import state
-from starlight_cli.kwik import extract_video_url
+from starlight_cli.kwik import extract_hls_url
 from starlight_cli.player import play
 
 console = Console()
@@ -154,18 +154,26 @@ def _pick_episode(session_id: str):
     return matched[0].get("session")
 
 
-def _pick_quality(downloads: list[dict]) -> dict:
-    if len(downloads) == 1:
-        return downloads[0]
+def _pick_quality(items: list[dict]) -> dict:
+    if len(items) == 1:
+        return items[0]
 
     console.print("\n[bold]Available qualities:[/]")
-    for i, dl in enumerate(downloads, 1):
-        console.print(f"  {i}. {dl['text']}")
+    for i, item in enumerate(items, 1):
+        if 'text' in item:
+            console.print(f"  {i}. {item['text']}")
+        else:
+            label = f"{item.get('resolution', '?')}p"
+            if item.get('audio'):
+                label += f" [{item['audio']}]"
+            if item.get('fansub'):
+                label += f" {item['fansub']}"
+            console.print(f"  {i}. {label}")
     choice = Prompt.ask(
-        "Select quality",
-        choices=[str(i) for i in range(1, len(downloads) + 1)],
+        "Select",
+        choices=[str(i) for i in range(1, len(items) + 1)],
     )
-    return downloads[int(choice) - 1]
+    return items[int(choice) - 1]
 
 
 def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
@@ -174,29 +182,30 @@ def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
     if not episode_id:
         episode_id = _pick_episode(session_id)
 
-    with console.status("Fetching download links..."):
-        downloads, error = fetch_episode_download_links(session_id, episode_id)
+    with console.status("Fetching streams..."):
+        streams, error = fetch_episode_streams(session_id, episode_id)
 
     if error:
         err_console.print(f"[red]{error}[/]")
         sys.exit(1)
-    if not downloads:
-        err_console.print("[red]No download links found.[/]")
+    if not streams:
+        err_console.print("[red]No streams found.[/]")
         sys.exit(1)
 
-    selected = _pick_quality(downloads)
-    kwik_url = selected["href"]
+    selected = _pick_quality(streams)
+    kwik_url = selected["kwik_url"]
 
-    with console.status("Extracting video URL from kwik.cx..."):
+    with console.status("Extracting video URL..."):
         try:
-            video_url = extract_video_url(kwik_url)
+            video_url = extract_hls_url(kwik_url)
         except Exception as e:
             err_console.print(f"[red]Failed to extract video URL:[/] {e}")
             sys.exit(1)
 
     if do_play:
         state.mark_watched(session_id, episode_id)
-        console.print(f"[green]Streaming {selected['text']}...[/]")
+        label = f"{selected.get('resolution', '?')}p"
+        console.print(f"[green]Streaming {label}...[/]")
         play(video_url)
     else:
         console.print(f"\n[bold green]Video URL:[/] {video_url}")

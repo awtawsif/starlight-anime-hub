@@ -1,73 +1,56 @@
 import re
 
-import requests
+from curl_cffi import requests
 
-CHARACTER_MAP = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
+kwik_session = requests.Session()
 
-KWIK_PARAMS_RE = re.compile(r'\("(\w+)",\d+,"(\w+)",(\d+),(\d+),\d+\)')
-KWIK_D_URL_RE = re.compile(r'action="([^"]+)"')
-KWIK_TOKEN_RE = re.compile(r'value="([^"]+)"')
-
-
-def _get_string(content: str, s1: int, s2: int) -> str:
-    slice_2 = CHARACTER_MAP[:s2]
-    acc = 0
-    for n, i in enumerate(content[::-1]):
-        acc += int(i if i.isdigit() else 0) * s1 ** n
-    k = ""
-    while acc > 0:
-        k = slice_2[int(acc % s2)] + k
-        acc = (acc - (acc % s2)) // s2
-    return k or "0"
+DEAN_PACKER_RE = re.compile(
+    r"return p}\('((?:\\'|[^'])*)',(\d+),(\d+),'([^']*)'\.split\('\|'\)"
+)
+HLS_URL_RE = re.compile(r"(https?://[^\"']+\.m3u8)")
 
 
-def _decrypt(full_string: str, key: str, v1: int, v2: int) -> str:
-    v1, v2 = int(v1), int(v2)
-    r = ""
-    i = 0
-    while i < len(full_string):
-        s = ""
-        while full_string[i] != key[v2]:
-            s += full_string[i]
-            i += 1
-        for j in range(len(key)):
-            s = s.replace(key[j], str(j))
-        r += chr(int(_get_string(s, v2, 10)) - v1)
-        i += 1
-    return r
+def __unpack(p, a, c, k, e, d):
+    def e_func(c_val):
+        res = ""
+        if c_val >= a:
+            res = e_func(int(c_val / a))
+        c_mod = c_val % a
+        if c_mod > 35:
+            res += chr(c_mod + 29)
+        elif c_mod > 9:
+            res += chr(c_mod + 87)
+        else:
+            res += str(c_mod)
+        return res
+
+    while c > 0:
+        c -= 1
+        val = k[c] if c < len(k) and k[c] else e_func(c)
+        d[e_func(c)] = val
+
+    return re.sub(r"\b\w+\b", lambda m: d.get(m.group(0), m.group(0)), p)
 
 
-def extract_video_url(kwik_url: str) -> str:
-    session = requests.Session()
-
-    resp = session.get(kwik_url, headers={"Referer": "https://kwik.cx/"})
+def extract_hls_url(kwik_url: str) -> str:
+    headers = {
+        "Referer": "https://animepahe.pw/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    resp = kwik_session.get(kwik_url, headers=headers, timeout=15)
     resp.raise_for_status()
 
-    match = KWIK_PARAMS_RE.search(resp.text)
-    if not match:
-        raise ValueError("Could not find kwik decryption parameters")
+    for match in DEAN_PACKER_RE.finditer(resp.text):
+        p_val = match.group(1).replace("\\'", "'")
+        a_val = int(match.group(2))
+        c_val = int(match.group(3))
+        k_val = match.group(4).split("|")
 
-    full_string, key, v1, v2 = match.group(1, 2, 3, 4)
-    decrypted = _decrypt(full_string, key, v1, v2)
+        unpacked = __unpack(p_val, a_val, c_val, k_val, 0, {})
+        m3u8_match = HLS_URL_RE.search(unpacked)
+        if m3u8_match:
+            return m3u8_match.group(1)
 
-    d_url_match = KWIK_D_URL_RE.search(decrypted)
-    token_match = KWIK_TOKEN_RE.search(decrypted)
-    if not d_url_match or not token_match:
-        raise ValueError("Could not find download URL or token in decrypted HTML")
-
-    d_url = d_url_match.group(1)
-    token = token_match.group(1)
-
-    while True:
-        post = session.post(
-            d_url,
-            data={"_token": token},
-            headers={"Referer": str(resp.url)},
-            allow_redirects=False,
-        )
-        if post.status_code == 302:
-            return post.headers["Location"]
-        if post.status_code != 419:
-            raise ValueError(
-                f"Unexpected status from kwik POST: {post.status_code}"
-            )
+    raise ValueError("Could not find .m3u8 URL in kwik embed page")
