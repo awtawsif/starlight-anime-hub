@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
-from starlight.api_handlers import (
+from starlight_cli.api import (
     fetch_airing_anime,
     fetch_anime_details,
     fetch_anime_search_results,
