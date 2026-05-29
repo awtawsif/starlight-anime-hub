@@ -165,6 +165,15 @@ def fetch_anime_details(anime_session_id):
         else:
             anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
 
+        # Extract title from og:title or h1
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            anime_details['title'] = og_title['content']
+        else:
+            h1 = soup.find('h1')
+            if h1:
+                anime_details['title'] = h1.get_text(strip=True).split('\n')[0]
+
         # Extract other details from the anime-info list
         info_column = soup.find('div', class_='col-sm-4 anime-info')
         if info_column:
