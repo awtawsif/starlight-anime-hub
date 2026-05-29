@@ -12,5 +12,4 @@ def play(url: str):
         print("  choco: choco install mpv", file=sys.stderr)
         sys.exit(1)
 
-    cmd = [mpv, url]
-    subprocess.run(cmd)
+    subprocess.run([mpv, f"--referrer=https://kwik.cx/", url])

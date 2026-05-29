@@ -41,5 +41,10 @@ Scraping breaks if the site changes HTML structure, or cookies in `config.py` ex
 ### kwik.cx obfuscation changes
 The `kwik.py` decrypt algorithm may break if kwik.cx changes their JS obfuscation. The reference implementation is in `anime-dl/anime-downloader`.
 
+### HLS CDN requires kwik.cx referer
+The video CDN (`vault-*.uwucdn.top`) is **not** Cloudflare-protected but **requires** `Referer: https://kwik.cx/`. Only the kwik.cx embed page needs `curl_cffi` impersonation.
+- `player.py` must pass `--referrer=https://kwik.cx/` to mpv so segment/key fetches include the referer.
+- Do **not** interpose a local HTTP proxy — mpv handles the CDN directly once given the raw m3u8 URL.
+
 ### Short codes are local
 Codes in `~/.starlight/state.json` are local to this machine. No sync or sharing.
