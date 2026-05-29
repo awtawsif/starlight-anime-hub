@@ -23,8 +23,3 @@ API_HEADERS = {
     'Sec-Fetch-Site': 'same-origin'
 }
 
-# Website Metadata
-WEBSITE_TITLE = "Starlight Anime Hub"
-WEBSITE_DESCRIPTION = "Your ultimate destination for anime streaming and information. Create constellations of your favorite anime, resume your trajectory, and stay updated with ongoing transmissions."
-WEBSITE_IMAGE = "/static/img/favicon.ico"  # Path to a default social sharing image
-WEBSITE_KEYWORDS = "anime, watch anime, anime streaming, anime hub, latest anime, download anime, download anime for free, free anime downloading, constellations, resume trajectory, ongoing transmissions"

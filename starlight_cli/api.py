@@ -154,17 +154,6 @@ def fetch_anime_details(anime_session_id):
         synopsis_tag = soup.find('div', class_='anime-synopsis')
         anime_details['synopsis'] = synopsis_tag.get_text(strip=True) if synopsis_tag else 'No synopsis available.'
 
-        # Extract Poster
-        poster_div = soup.find('div', class_='anime-poster')
-        if poster_div:
-            poster_img_tag = poster_div.find('img')
-            if poster_img_tag:
-                anime_details['poster'] = poster_img_tag.get('data-src') or poster_img_tag.get('src')
-            if not anime_details['poster']:
-                 anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
-        else:
-            anime_details['poster'] = "https://placehold.co/300x450/1a202c/ffffff?text=No+Image+Available&font=inter"
-
         # Extract title from og:title or h1
         og_title = soup.find('meta', property='og:title')
         if og_title and og_title.get('content'):
@@ -285,7 +274,7 @@ def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
     error_message = None
     pagination_data = {
         'total': 0, 'per_page': 0, 'current_page': page,
-        'last_page': 1, 'next_page_url': None, 'prev_page_url': None
+        'last_page': 1,
     }
 
     try:
@@ -360,7 +349,7 @@ def fetch_airing_anime(page):
     error_message = None
     pagination_data = {
         'total': 0, 'per_page': 0, 'current_page': page,
-        'last_page': 1, 'next_page_url': None, 'prev_page_url': None
+        'last_page': 1,
     }
     try:
         params = {'m': 'airing', 'page': page}

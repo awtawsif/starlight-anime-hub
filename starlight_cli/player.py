@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 
-def play(url: str, referer: str = "https://kwik.cx/"):
+def play(url: str):
     mpv = shutil.which("mpv")
     if not mpv:
         print("mpv not found. Install it:", file=sys.stderr)
@@ -12,5 +12,5 @@ def play(url: str, referer: str = "https://kwik.cx/"):
         print("  choco: choco install mpv", file=sys.stderr)
         sys.exit(1)
 
-    cmd = [mpv, f"--referrer={referer}", url]
+    cmd = [mpv, url]
     subprocess.run(cmd)

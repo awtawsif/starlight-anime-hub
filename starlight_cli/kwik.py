@@ -10,7 +10,7 @@ DEAN_PACKER_RE = re.compile(
 HLS_URL_RE = re.compile(r"(https?://[^\"']+\.m3u8)")
 
 
-def __unpack(p, a, c, k, e, d):
+def __unpack(p, a, c, k, d):
     def e_func(c_val):
         res = ""
         if c_val >= a:
@@ -48,7 +48,7 @@ def extract_hls_url(kwik_url: str) -> str:
         c_val = int(match.group(3))
         k_val = match.group(4).split("|")
 
-        unpacked = __unpack(p_val, a_val, c_val, k_val, 0, {})
+        unpacked = __unpack(p_val, a_val, c_val, k_val, {})
         m3u8_match = HLS_URL_RE.search(unpacked)
         if m3u8_match:
             return m3u8_match.group(1)

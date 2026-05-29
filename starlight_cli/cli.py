@@ -134,12 +134,15 @@ def _pick_episode(session_id: str):
         err_console.print("[red]No episodes found for this anime.[/]")
         sys.exit(1)
 
+    display_eps = all_ep[-30:]
     table = Table()
     table.add_column("#", style="cyan")
 
-    for ep in all_ep:
+    for ep in display_eps:
         table.add_row(str(ep.get("episode", "?")))
 
+    if len(all_ep) > 30:
+        console.print(f"[dim]Showing last 30 of {len(all_ep)} episodes[/]")
     console.print(table)
     choice = Prompt.ask("Enter episode number")
 
@@ -467,17 +470,17 @@ def continue_watching():
             if code
             else f"\n[bold cyan]{title}[/]"
         )
-        all_ep = _fetch_all_episodes(aid)
-        if not all_ep:
+        ep_batch, pagination, error = fetch_episode_list(aid, 1, "episode_asc")
+        if error or not ep_batch:
             continue
 
         unwatched = [
             e
-            for e in all_ep
+            for e in ep_batch
             if not state.is_watched(aid, str(e.get("session", "")))
         ]
 
-        if not unwatched:
+        if not unwatched and pagination.get("last_page", 1) <= 1:
             console.print("  [dim]All caught up![/]")
         else:
             for ep in unwatched[:10]:
@@ -488,3 +491,5 @@ def continue_watching():
             remaining = len(unwatched) - 10
             if remaining > 0:
                 console.print(f"  [dim]... and {remaining} more[/]")
+            if not unwatched and pagination.get("last_page", 1) > 1:
+                console.print("  [dim]Up to date on recent episodes[/]")
