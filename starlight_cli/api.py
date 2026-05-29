@@ -331,9 +331,9 @@ def fetch_episode_streams(anime_session_id, episode_session_id):
                 kwik = btn.get('data-src')
                 if kwik:
                     streams.append({
-                        'resolution': btn.get('data-resolution', 'unknown'),
-                        'audio': btn.get('data-audio', 'unknown'),
-                        'fansub': btn.get('data-fansub', 'unknown'),
+                        'resolution': btn.get('data-resolution') or 'unknown',
+                        'audio': btn.get('data-audio') or 'unknown',
+                        'fansub': btn.get('data-fansub') or 'unknown',
                         'kwik_url': kwik,
                     })
         else:

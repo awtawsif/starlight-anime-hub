@@ -158,17 +158,23 @@ def _pick_quality(items: list[dict]) -> dict:
     if len(items) == 1:
         return items[0]
 
+    from collections import OrderedDict
+
+    groups = OrderedDict()
+    for i, item in enumerate(items):
+        audio = item.get('audio', 'unknown')
+        fansub = item.get('fansub', '')
+        groups.setdefault((audio, fansub), []).append((i + 1, item))
+
     console.print("\n[bold]Available qualities:[/]")
-    for i, item in enumerate(items, 1):
-        if 'text' in item:
-            console.print(f"  {i}. {item['text']}")
-        else:
-            label = f"{item.get('resolution', '?')}p"
-            if item.get('audio'):
-                label += f" [{item['audio']}]"
-            if item.get('fansub'):
-                label += f" {item['fansub']}"
-            console.print(f"  {i}. {label}")
+    for (audio, fansub), group in groups.items():
+        header = f"[{audio}]"
+        if fansub:
+            header += f" {fansub}"
+        console.print(f"  [bold]{header}:[/]")
+        for idx, item in group:
+            console.print(f"    {idx}. {item.get('resolution', '?')}p")
+
     choice = Prompt.ask(
         "Select",
         choices=[str(i) for i in range(1, len(items) + 1)],
