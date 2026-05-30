@@ -1,12 +1,15 @@
+import os
 import re
+import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from rich.table import Table
 from rich.prompt import Prompt
 from rich.markup import escape
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
-from starlight_cli.cli import console, err_console
 from starlight_cli import state
 from starlight_cli.api import (
     fetch_anime_details,
@@ -241,3 +244,206 @@ def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
         play(video_url)
     else:
         console.print(f"\n[bold green]Video URL:[/] {video_url}")
+
+
+def _sanitize_filename(title: str) -> str:
+    s = title.lower().replace(" ", "_")
+    s = re.sub(r"[^a-z0-9_-]", "", s)
+    return s.strip("_")
+
+
+def _parse_episode_range(range_str: str) -> list[int]:
+    nums: list[int] = []
+    for part in range_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            a, b = part.split("-", 1)
+            nums.extend(range(int(a), int(b) + 1))
+        else:
+            nums.append(int(part))
+    return sorted(set(nums))
+
+
+def _format_size(bytes_: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if bytes_ < 1024:
+            return f"{bytes_:.1f} {unit}"
+        bytes_ /= 1024
+    return f"{bytes_:.1f} TB"
+
+
+_ffmpeg_cache: bool | None = None
+
+def _ffmpeg_available() -> bool:
+    global _ffmpeg_cache
+    if _ffmpeg_cache is None:
+        try:
+            subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+            _ffmpeg_cache = True
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            _ffmpeg_cache = False
+    return _ffmpeg_cache
+
+
+def _download_one(video_url: str, output_path: Path, label: str):
+    if not _ffmpeg_available():
+        err_console.print(
+            "[red]ffmpeg is required for downloads. Install: "
+            "apt install ffmpeg / brew install ffmpeg[/]"
+        )
+        sys.exit(1)
+
+    proc = subprocess.Popen(
+        ["ffmpeg", "-headers", f"Referer: https://kwik.cx/",
+         "-i", video_url,
+         "-c", "copy",
+         "-y", str(output_path)],
+        stderr=subprocess.PIPE, universal_newlines=True
+    )
+
+    duration: float | None = None
+    progress = Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        TimeRemainingColumn(),
+    )
+
+    with progress:
+        task = progress.add_task(f"[cyan]Downloading {label}...", total=None)
+
+        for line in proc.stderr:
+            if duration is None and "Duration:" in line:
+                m = re.search(r"Duration: (\d+):(\d+):(\d+)\.(\d+)", line)
+                if m:
+                    h, mn, s, ms = (
+                        int(m.group(1)), int(m.group(2)),
+                        int(m.group(3)), int(m.group(4)),
+                    )
+                    duration = h * 3600 + mn * 60 + s + ms / 100
+                    progress.update(task, total=duration)
+            elif "time=" in line:
+                m = re.search(r"time=(\d+):(\d+):(\d+)\.(\d+)", line)
+                if m:
+                    h, mn, s, ms = (
+                        int(m.group(1)), int(m.group(2)),
+                        int(m.group(3)), int(m.group(4)),
+                    )
+                    current = h * 3600 + mn * 60 + s + ms / 100
+                    progress.update(task, completed=current)
+                else:
+                    m = re.search(r"time=(\d+\.\d+)", line)
+                    if m:
+                        progress.update(task, completed=float(m.group(1)))
+
+        proc.wait()
+
+    if proc.returncode != 0:
+        err_console.print(f"[red]Download failed (exit code {proc.returncode})[/]")
+        sys.exit(1)
+
+    size = _format_size(output_path.stat().st_size)
+    console.print(f"[green]Downloaded:[/] {output_path.name} ({size})")
+
+
+def _resolve_and_download(anime: str, episode_id: str | None, output: str):
+    session_id, title = _resolve_anime(anime)
+
+    if not episode_id:
+        episode_id = _pick_episode(session_id)
+
+    with console.status("Fetching streams..."):
+        streams, error = fetch_episode_streams(session_id, episode_id)
+
+    if error:
+        err_console.print(f"[red]{error}[/]")
+        sys.exit(1)
+    if not streams:
+        err_console.print("[red]No streams found.[/]")
+        sys.exit(1)
+
+    selected = _pick_quality(streams)
+
+    with console.status("Extracting video URL..."):
+        try:
+            video_url = extract_hls_url(selected["kwik_url"])
+        except Exception as e:
+            err_console.print(f"[red]Failed to extract video URL:[/] {e}")
+            sys.exit(1)
+
+    console.print(f"[dim]URL: {video_url}[/]")
+
+    out_path = Path(output)
+    if out_path.is_dir():
+        err_console.print(
+            "[red]For single download, --output must be a file path, "
+            "not a directory. Use --batch for batch downloads.[/]"
+        )
+        sys.exit(1)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    _download_one(video_url, out_path, out_path.name)
+
+
+def _batch_download(anime: str, episodes: list[int], output_dir: Path | None):
+    session_id, title = _resolve_anime(anime)
+
+    if output_dir is None:
+        output_dir = Path.home() / "Videos" / _sanitize_filename(title)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    with console.status("Fetching episodes..."):
+        all_ep = _fetch_all_episodes(session_id)
+
+    if not all_ep:
+        err_console.print("[red]No episodes found.[/]")
+        sys.exit(1)
+
+    ep_map = {int(e.get("episode", 0)): e for e in all_ep}
+    safe_title = _sanitize_filename(title)
+
+    for ep_num in episodes:
+        ep = ep_map.get(ep_num)
+        if not ep:
+            err_console.print(f"[yellow]Episode {ep_num} not found, skipping.[/]")
+            continue
+
+        ep_session = ep.get("session")
+        label = f"EP{ep_num:02d}"
+
+        with console.status(f"Fetching streams for {label}..."):
+            streams, error = fetch_episode_streams(session_id, ep_session)
+
+        if error:
+            err_console.print(f"[red]{label}: {error}[/]")
+            continue
+        if not streams:
+            err_console.print(f"[red]{label}: No streams found.[/]")
+            continue
+
+        sorted_streams = sorted(
+            streams,
+            key=lambda s: int(s.get("resolution", 0) or 0),
+            reverse=True,
+        )
+        selected = sorted_streams[0]
+
+        with console.status(f"Extracting video URL for {label}..."):
+            try:
+                video_url = extract_hls_url(selected["kwik_url"])
+            except Exception as e:
+                err_console.print(f"[red]{label}: Failed to extract URL: {e}[/]")
+                continue
+
+        console.print(f"[dim]{label} URL: {video_url}[/]")
+
+        output_path = output_dir / f"{safe_title} - {label}.mp4"
+        _download_one(video_url, output_path, label)
+
+    console.print(f"\n[green]Batch download complete. Files saved to: {output_dir}[/]")
+
+
+from starlight_cli.cli import console, err_console  # noqa: E402 — deferred to avoid circular import

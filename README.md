@@ -120,13 +120,30 @@ Use `--episode` / `-e` as an alternative to the positional argument:
 starlight watch onpi --episode 778b7b85ae0f
 ```
 
-### `starlight download <anime> [episode_id] [--episode / -e]`
-Same flow as `watch` but prints the final video URL instead of launching mpv.
+### `starlight download <anime> [episode_id] [--episode / -e] [--output / -o] [--batch / -b]`
+
+Prints the video URL by default. Add `--output` / `-o` to actually download the file, or `--batch` / `-b` to download a range of episodes.
 
 ```sh
+# Print URL only
 starlight download onpi
-# Video URL: https://cdn.kwik.cx/file/.../video.mp4
+# Video URL: https://cdn.kwik.cx/file/.../video.m3u8
+
+# Download single episode to file
+starlight download onpi -o ep5.mp4
+
+# Batch download episodes 1-10 to ~/Videos/one_piece/
+starlight download onpi -b 1-10
+
+# Batch download to custom directory
+starlight download onpi -b 1-10 -o ./my_eps/
 ```
+
+Batch ranges accept comma-separated numbers and dash ranges: `-b 1-5,8,10-12`.
+
+In batch mode, the highest quality stream is auto-selected. Files are named `{title} - EP{num:02d}.mp4`.
+
+Requires `ffmpeg` (install: `apt install ffmpeg` / `brew install ffmpeg`).
 
 ## How Short Codes Work
 
