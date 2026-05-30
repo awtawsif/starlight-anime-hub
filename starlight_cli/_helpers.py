@@ -348,11 +348,27 @@ def _download_one(video_url: str, output_path: Path, label: str):
     console.print(f"[green]Downloaded:[/] {output_path.name} ({size})")
 
 
-def _resolve_and_download(anime: str, episode_id: str | None, output: str):
+def _download_single(anime: str, episode_id: str | None, output_dir: Path | None):
     session_id, title = _resolve_anime(anime)
+
+    if output_dir is None:
+        output_dir = Path.home() / "Videos" / _sanitize_filename(title)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if not episode_id:
         episode_id = _pick_episode(session_id)
+
+    with console.status("Fetching episode info..."):
+        all_ep = _fetch_all_episodes(session_id)
+
+    ep_num = None
+    for ep in all_ep:
+        if ep.get("session") == episode_id:
+            ep_num = int(ep.get("episode", 0))
+            break
+
+    label = f"EP{ep_num:02d}" if ep_num else "episode"
+    safe_title = _sanitize_filename(title)
 
     with console.status("Fetching streams..."):
         streams, error = fetch_episode_streams(session_id, episode_id)
@@ -375,16 +391,8 @@ def _resolve_and_download(anime: str, episode_id: str | None, output: str):
 
     console.print(f"[dim]URL: {video_url}[/]")
 
-    out_path = Path(output)
-    if out_path.is_dir():
-        err_console.print(
-            "[red]For single download, --output must be a file path, "
-            "not a directory. Use --batch for batch downloads.[/]"
-        )
-        sys.exit(1)
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    _download_one(video_url, out_path, out_path.name)
+    output_path = output_dir / f"{safe_title} - {label}.mp4"
+    _download_one(video_url, output_path, label)
 
 
 def _batch_download(anime: str, episodes: list[int], output_dir: Path | None):

@@ -122,15 +122,17 @@ starlight watch onpi --episode 778b7b85ae0f
 
 ### `starlight download <anime> [episode_id] [--episode / -e] [--output / -o] [--batch / -b]`
 
-Prints the video URL by default. Add `--output` / `-o` to actually download the file, or `--batch` / `-b` to download a range of episodes.
+Downloads video files to disk. Files are auto-named `{title} - EP{num:02d}.mp4`.
 
 ```sh
-# Print URL only
+# Download single episode (interactive picker)
 starlight download onpi
-# Video URL: https://cdn.kwik.cx/file/.../video.m3u8
 
-# Download single episode to file
-starlight download onpi -o ep5.mp4
+# Download to custom directory
+starlight download onpi -o ./my_eps/
+
+# Download specific episode
+starlight download onpi -e 778b7b85ae0f
 
 # Batch download episodes 1-10 to ~/Videos/one_piece/
 starlight download onpi -b 1-10
@@ -139,11 +141,9 @@ starlight download onpi -b 1-10
 starlight download onpi -b 1-10 -o ./my_eps/
 ```
 
-Batch ranges accept comma-separated numbers and dash ranges: `-b 1-5,8,10-12`.
+Batch ranges: `-b 1-5,8,10-12`. In batch mode the highest quality is auto-selected.
 
-In batch mode, the highest quality stream is auto-selected. Files are named `{title} - EP{num:02d}.mp4`.
-
-Requires `ffmpeg` (install: `apt install ffmpeg` / `brew install ffmpeg`).
+Requires `ffmpeg` (`apt install ffmpeg` / `brew install ffmpeg`).
 
 ## How Short Codes Work
 

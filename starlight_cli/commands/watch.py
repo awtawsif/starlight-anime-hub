@@ -26,7 +26,7 @@ def watch(anime, episode_id, episode_opt):
 @click.argument("anime")
 @click.argument("episode_id", required=False)
 @click.option("--episode", "-e", "episode_opt", default=None, help="Episode session ID (alternative to positional arg)")
-@click.option("--output", "-o", default=None, help="Output file (single) or directory (batch)")
+@click.option("--output", "-o", default=None, help="Output directory (default: ~/Videos/{title}/)")
 @click.option("--batch", "-b", default=None, help="Download episode range (e.g. 1-10, 1,3,5)")
 def download(anime, episode_id, episode_opt, output, batch):
     ctx = click.get_current_context()
@@ -36,13 +36,11 @@ def download(anime, episode_id, episode_opt, output, batch):
         sys.stdout.write(json.dumps({"session_id": session_id, "title": title}) + "\n")
         return
 
+    out_dir = Path(output) if output else None
+
     if batch:
         from starlight_cli._helpers import _parse_episode_range, _batch_download
-        episodes = _parse_episode_range(batch)
-        out_dir = Path(output) if output else None
-        _batch_download(anime, episodes, out_dir)
-    elif output:
-        from starlight_cli._helpers import _resolve_and_download
-        _resolve_and_download(anime, episode_id or episode_opt, output)
+        _batch_download(anime, _parse_episode_range(batch), out_dir)
     else:
-        _resolve_and_play(anime, episode_id or episode_opt, do_play=False)
+        from starlight_cli._helpers import _download_single
+        _download_single(anime, episode_id or episode_opt, out_dir)
