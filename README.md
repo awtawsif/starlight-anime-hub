@@ -20,8 +20,9 @@ A terminal-based anime discovery and streaming tool. Search anime, browse curren
 ### Install
 
 ```sh
-git clone <repo-url>
+git clone https://github.com/awtawsif/starlight-anime-hub.git
 cd starlight-anime-hub
+git checkout cli-version
 pip install -e .
 ```
 
@@ -73,7 +74,7 @@ Search anime by title. Displays results with short codes and saves the codes to 
 
 ```sh
 starlight search "Frieren"
-# Code  Title                              Type  Episodes  Score  Status
+# Code  Title                             Type  Episodes  Score  Status
 # frbe  Frieren: Beyond Journey's End     TV    28        9.26   Finished Airing
 # sono  Sousou no Frieren                 TV    28        8.63   Finished Airing
 ```
