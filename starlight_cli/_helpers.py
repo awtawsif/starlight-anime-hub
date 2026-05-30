@@ -274,36 +274,42 @@ def _format_size(bytes_: int) -> str:
     return f"{bytes_:.1f} TB"
 
 
-_ffmpeg_cache: bool | None = None
+_ytdlp_cache: bool | None = None
 
-def _ffmpeg_available() -> bool:
-    global _ffmpeg_cache
-    if _ffmpeg_cache is None:
+def _ytdlp_available() -> bool:
+    global _ytdlp_cache
+    if _ytdlp_cache is None:
         try:
-            subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-            _ffmpeg_cache = True
+            subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
+            _ytdlp_cache = True
         except (FileNotFoundError, subprocess.CalledProcessError):
-            _ffmpeg_cache = False
-    return _ffmpeg_cache
+            _ytdlp_cache = False
+    return _ytdlp_cache
+
+YTDLP_PROGRESS_RE = re.compile(
+    r"\[download\]\s+(\d+(?:\.\d+)?)%"
+)
 
 
 def _download_one(video_url: str, output_path: Path, label: str):
-    if not _ffmpeg_available():
+    if not _ytdlp_available():
         err_console.print(
-            "[red]ffmpeg is required for downloads. Install: "
-            "apt install ffmpeg / brew install ffmpeg[/]"
+            "[red]yt-dlp is required for downloads. Install: "
+            "pip install yt-dlp pycryptodomex[/]"
         )
         sys.exit(1)
 
     proc = subprocess.Popen(
-        ["ffmpeg", "-headers", f"Referer: https://kwik.cx/",
-         "-i", video_url,
-         "-c", "copy",
-         "-y", str(output_path)],
-        stderr=subprocess.PIPE, universal_newlines=True
+        ["yt-dlp",
+         "--referer", "https://kwik.cx/",
+         "--newline",
+         "--no-mtime",
+         "-o", str(output_path),
+         video_url],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        universal_newlines=True,
     )
 
-    duration: float | None = None
     progress = Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -312,31 +318,12 @@ def _download_one(video_url: str, output_path: Path, label: str):
     )
 
     with progress:
-        task = progress.add_task(f"[cyan]Downloading {label}...", total=None)
+        task = progress.add_task(f"[cyan]Downloading {label}...", total=100)
 
-        for line in proc.stderr:
-            if duration is None and "Duration:" in line:
-                m = re.search(r"Duration: (\d+):(\d+):(\d+)\.(\d+)", line)
-                if m:
-                    h, mn, s, ms = (
-                        int(m.group(1)), int(m.group(2)),
-                        int(m.group(3)), int(m.group(4)),
-                    )
-                    duration = h * 3600 + mn * 60 + s + ms / 100
-                    progress.update(task, total=duration)
-            elif "time=" in line:
-                m = re.search(r"time=(\d+):(\d+):(\d+)\.(\d+)", line)
-                if m:
-                    h, mn, s, ms = (
-                        int(m.group(1)), int(m.group(2)),
-                        int(m.group(3)), int(m.group(4)),
-                    )
-                    current = h * 3600 + mn * 60 + s + ms / 100
-                    progress.update(task, completed=current)
-                else:
-                    m = re.search(r"time=(\d+\.\d+)", line)
-                    if m:
-                        progress.update(task, completed=float(m.group(1)))
+        for line in proc.stdout:
+            m = YTDLP_PROGRESS_RE.search(line)
+            if m:
+                progress.update(task, completed=float(m.group(1)))
 
         proc.wait()
 

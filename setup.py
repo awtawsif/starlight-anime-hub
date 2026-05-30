@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="starlight-anime-hub",
-    version="1.3.0",
+    version="1.4.0",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -12,6 +12,8 @@ setup(
         "beautifulsoup4>=4.13",
         "lxml>=6.0",
         "curl_cffi>=0.15.0",
+        "yt-dlp>=2024.0",
+        "pycryptodomex>=3.20",
     ],
     entry_points={
         "console_scripts": [
