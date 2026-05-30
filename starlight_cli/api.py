@@ -23,6 +23,20 @@ def _get_session():
         _api_session.headers.update(API_HEADERS)
     return _api_session
 
+
+def _api_get(params, timeout=10):
+    try:
+        resp = _get_session().get(API_BASE_URL, params=params, timeout=timeout)
+        resp.raise_for_status()
+        return resp.json(), None
+    except requests.exceptions.RequestException as e:
+        logger.error("API error (params=%s): %s", params, e)
+        return None, f"API request failed: {e}"
+    except Exception as e:
+        logger.error("Unexpected API error (params=%s): %s", params, e)
+        return None, f"Unexpected error: {e}"
+
+
 def _parse_related_anime_card(card_row_element):
     """
     Parses a BeautifulSoup element representing a single anime card (div with row mx-n1)
@@ -104,31 +118,10 @@ def _parse_related_anime_card(card_row_element):
     return anime_card_data
 
 def fetch_anime_search_results(query):
-    """
-    Fetches anime search results from the AnimePahe API.
-
-    Args:
-        query (str): The search query for anime.
-
-    Returns:
-        tuple: A tuple containing a list of search results (dict) and an error message (str).
-               Returns ([], error_message) on failure, (results, None) on success.
-    """
-    results = []
-    error_message = None
-    try:
-        params = {'m': 'search', 'q': query}
-        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
-        response.raise_for_status()
-        json_data = response.json()
-        results = json_data.get('data', [])
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API Request Error during search for '{query}': {e}")
-        error_message = f"Could not connect to the anime search service. Please try again later. ({e})"
-    except Exception as e:
-        logger.error(f"Unexpected Error during search for '{query}': {e}")
-        error_message = f"An unexpected error occurred during search: {e}"
-    return results, error_message
+    data, error_message = _api_get({'m': 'search', 'q': query})
+    if error_message:
+        return [], error_message
+    return data.get('data', []), None
 
 def fetch_anime_details(anime_session_id):
     """
@@ -254,49 +247,19 @@ def fetch_anime_details(anime_session_id):
     return anime_details, error_message
 
 def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
-    """
-    Fetches a paginated list of episodes for a given anime session ID from the API.
-
-    Args:
-        anime_session_id (str): The unique session ID for the anime.
-        page (int): The page number of episodes to fetch.
-        sort_order (str): The order to sort episodes ('episode_asc' or 'episode_desc').
-
-    Returns:
-        tuple: A tuple containing a list of episodes, pagination data, and an error message.
-               Returns ([], {}, error_message) on failure, (episodes, pagination_data, None) on success.
-    """
-    episodes = []
-    error_message = None
     pagination_data = {
         'total': 0, 'per_page': 0, 'current_page': page,
         'last_page': 1,
     }
-
-    try:
-        params = {
-            'm': 'release', 'id': anime_session_id,
-            'sort': sort_order, 'page': page
-        }
-        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
-        response.raise_for_status()
-        json_data = response.json()
-        
-        episodes = json_data.get('data', [])
-        
-        pagination_data['total'] = json_data.get('total', 0)
-        pagination_data['per_page'] = json_data.get('per_page', 0)
-        pagination_data['current_page'] = json_data.get('current_page', page)
-        pagination_data['last_page'] = json_data.get('last_page', 1)
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API Request Error for episodes (ID: {anime_session_id}, page: {page}): {e}")
-        error_message = f"Could not fetch episode data. Please try again later. ({e})"
-    except Exception as e:
-        logger.error(f"Unexpected Error fetching episodes (ID: {anime_session_id}): {e}")
-        error_message = f"An unexpected error occurred while fetching episodes: {e}"
-
-    return episodes, pagination_data, error_message
+    data, error_message = _api_get({'m': 'release', 'id': anime_session_id, 'sort': sort_order, 'page': page})
+    if error_message:
+        return [], pagination_data, error_message
+    episodes = data.get('data', [])
+    pagination_data['total'] = data.get('total', 0)
+    pagination_data['per_page'] = data.get('per_page', 0)
+    pagination_data['current_page'] = data.get('current_page', page)
+    pagination_data['last_page'] = data.get('last_page', 1)
+    return episodes, pagination_data, None
 
 def fetch_episode_streams(anime_session_id, episode_session_id):
     clean_episode_id = episode_session_id.split("&")[0].split("?")[0]
@@ -332,41 +295,17 @@ def fetch_episode_streams(anime_session_id, episode_session_id):
     return streams, error_message
 
 def fetch_airing_anime(page):
-    """
-    Fetches the list of currently airing anime from the API.
-
-    Args:
-        page (int): The page number of airing anime to fetch.
-
-    Returns:
-        tuple: A tuple containing a list of airing anime, pagination data, and an error message.
-               Returns ([], {}, error_message) on failure, (airing_anime, pagination_data, None) on success.
-    """
-    airing_anime = []
-    error_message = None
     pagination_data = {
         'total': 0, 'per_page': 0, 'current_page': page,
         'last_page': 1,
     }
-    try:
-        params = {'m': 'airing', 'page': page}
-        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
-        response.raise_for_status()
-        json_data = response.json()
-
-        airing_anime = json_data.get('data', [])
-
-        pagination_data['total'] = json_data.get('total', 0)
-        pagination_data['per_page'] = json_data.get('per_page', 0)
-        pagination_data['current_page'] = json_data.get('current_page', page)
-        pagination_data['last_page'] = json_data.get('last_page', 1)
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API Request Error fetching airing anime (page: {page}): {e}")
-        error_message = f"Could not fetch airing anime. Please try again later. ({e})"
-    except Exception as e:
-        logger.error(f"Unexpected Error fetching airing anime (page: {page}): {e}")
-        error_message = f"An unexpected error occurred while fetching airing anime: {e}"
-
-    return airing_anime, pagination_data, error_message
+    data, error_message = _api_get({'m': 'airing', 'page': page})
+    if error_message:
+        return [], pagination_data, error_message
+    airing_anime = data.get('data', [])
+    pagination_data['total'] = data.get('total', 0)
+    pagination_data['per_page'] = data.get('per_page', 0)
+    pagination_data['current_page'] = data.get('current_page', page)
+    pagination_data['last_page'] = data.get('last_page', 1)
+    return airing_anime, pagination_data, None
 

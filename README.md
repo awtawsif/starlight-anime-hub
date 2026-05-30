@@ -98,7 +98,7 @@ Interactive episode and quality picker. Extracts the video URL from kwik.cx and 
 
 ```sh
 starlight watch onpi
-# → shows episode list, prompt to choose
+# → shows episode list, prompt to choose (or enter range like 1-30)
 # → shows qualities (1080p, 720p, etc.)
 # → launches mpv
 ```
@@ -163,12 +163,12 @@ Delete this file to reset all state.
 ```
 starlight_cli/
   __init__.py    # Package marker
-  cli.py         # CLI commands (click + rich), concurrent episode fetching
-  api.py         # REST + scrape animepahe.pw (shared requests.Session)
+  cli.py         # CLI commands (click + rich), concurrent episode fetching, range input in picker
+  api.py         # REST + scrape animepahe.pw (shared requests.Session, centralized _api_get wrapper)
   config.py      # HTTP headers and target URLs
-  kwik.py        # kwik.cx JS dean-packer decryption → .m3u8 URL (lazy curl_cffi session)
+  kwik.py        # kwik.cx JS dean-packer decryption → .m3u8 URL (lazy curl_cffi session, raw HTML fallback)
   player.py      # mpv subprocess wrapper
-  state.py       # ~/.starlight/state.json read/write (in-memory cache, kwik cache with 7-day TTL)
+  state.py       # ~/.starlight/state.json read/write (in-memory cache, fcntl file locking, kwik cache 7-day TTL)
 ```
 
 ## Dependencies

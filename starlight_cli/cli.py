@@ -145,24 +145,45 @@ def _pick_episode(session_id: str):
         err_console.print("[red]No episodes found for this anime.[/]")
         sys.exit(1)
 
-    display_eps = all_ep[-30:]
-    table = Table()
-    table.add_column("#", style="cyan")
+    console.print(f"[dim]Episodes 1–{len(all_ep)} available[/]")
 
-    for ep in display_eps:
-        table.add_row(str(ep.get("episode", "?")))
+    while True:
+        display_eps = all_ep[-30:]
+        table = Table()
+        table.add_column("#", style="cyan")
 
-    if len(all_ep) > 30:
-        console.print(f"[dim]Showing last 30 of {len(all_ep)} episodes[/]")
-    console.print(table)
-    choice = Prompt.ask("Enter episode number")
+        for ep in display_eps:
+            table.add_row(str(ep.get("episode", "?")))
 
-    matched = [e for e in all_ep if str(e.get("episode")) == choice]
-    if not matched:
+        if len(all_ep) > 30:
+            console.print(f"[dim]Showing last 30 of {len(all_ep)} episodes[/]")
+        console.print(table)
+
+        choice = Prompt.ask("Enter episode number or range (e.g. 1-50)")
+
+        range_match = re.match(r"^(\d+)-(\d+)$", choice)
+        if range_match:
+            start, end = int(range_match.group(1)), int(range_match.group(2))
+            filtered = [e for e in all_ep if start <= int(e.get("episode", 0)) <= end]
+            if not filtered:
+                err_console.print(f"[red]No episodes in range {start}-{end}.[/]")
+                continue
+            t = Table()
+            t.add_column("#", style="cyan")
+            for ep in filtered:
+                t.add_row(str(ep.get("episode", "?")))
+            console.print(t)
+            sub = Prompt.ask("Enter episode number")
+            matched = [e for e in filtered if str(e.get("episode")) == sub]
+            if matched:
+                return matched[0].get("session")
+            err_console.print(f"[red]Episode {sub} not found in range.[/]")
+            continue
+
+        matched = [e for e in all_ep if str(e.get("episode")) == choice]
+        if matched:
+            return matched[0].get("session")
         err_console.print(f"[red]Episode {choice} not found.[/]")
-        sys.exit(1)
-
-    return matched[0].get("session")
 
 
 def _pick_quality(items: list[dict]) -> dict:
@@ -246,7 +267,7 @@ def search(query):
 
     if not results:
         console.print("[yellow]No results found.[/]")
-        return
+        sys.exit(1)
 
     table = Table(title=f"Search results for '{query}'")
     table.add_column("Code", style="cyan", width=6)
@@ -284,7 +305,7 @@ def airing(page):
 
     if not anime:
         console.print("[yellow]No currently airing anime found.[/]")
-        return
+        sys.exit(1)
 
     cur = pagination.get("current_page", 1)
     last = pagination.get("last_page", 1)
@@ -385,7 +406,7 @@ def episodes(anime, page, sort):
 
     if not batch:
         console.print("[yellow]No episodes found.[/]")
-        return
+        sys.exit(1)
 
     cur = pagination.get("current_page", 1)
     last = pagination.get("last_page", 1)

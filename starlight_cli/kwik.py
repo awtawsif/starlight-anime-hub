@@ -1,9 +1,11 @@
 import re
 import time
+import logging
 
 from curl_cffi import requests
 from starlight_cli import state
 
+logger = logging.getLogger(__name__)
 _kwik_session = None
 
 
@@ -65,6 +67,12 @@ def extract_hls_url(kwik_url: str) -> str:
     resp = _get_session().get(kwik_url, headers=headers, timeout=15)
     resp.raise_for_status()
 
+    raw_m3u8 = HLS_URL_RE.search(resp.text)
+    if raw_m3u8:
+        hls_url = raw_m3u8.group(1)
+        state.set_kwik_cache_entry(kwik_url, hls_url)
+        return hls_url
+
     for match in DEAN_PACKER_RE.finditer(resp.text):
         p_val = match.group(1).replace("\\'", "'")
         a_val = int(match.group(2))
@@ -78,4 +86,5 @@ def extract_hls_url(kwik_url: str) -> str:
             state.set_kwik_cache_entry(kwik_url, hls_url)
             return hls_url
 
-    raise ValueError("Could not find .m3u8 URL in kwik embed page")
+    logger.warning("No .m3u8 found in kwik page (first 2000 chars): %s", resp.text[:2000])
+    raise ValueError(f"Could not find .m3u8 URL in kwik embed page: {kwik_url}")

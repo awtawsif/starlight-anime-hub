@@ -1,5 +1,6 @@
 import json
 import time
+import fcntl
 from pathlib import Path
 from typing import Optional
 
@@ -21,7 +22,9 @@ def _read():
     _ensure()
     global _cache
     if _cache is None:
-        _cache = json.loads(STATE_FILE.read_text())
+        with open(STATE_FILE, "r") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            _cache = json.load(f)
     return _cache
 
 
@@ -29,7 +32,9 @@ def _write(data):
     _ensure()
     global _cache
     _cache = None
-    STATE_FILE.write_text(json.dumps(data, indent=2))
+    with open(STATE_FILE, "w") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        json.dump(data, f, indent=2)
 
 
 def save_code(code: str, session_id: str, title: str):
