@@ -10,8 +10,6 @@ A terminal-based anime discovery and streaming tool. Search anime, browse curren
 - **Episode Listings** — Browse episodes with pagination and sort order
 - **Streaming** — Interactive episode/quality picker → mpv
 - **Download Links** — Extract playable video URLs for use with any player
-- **Bookmarks** — Save anime for quick access, persisted on disk
-- **Continue Watching** — See unwatched episodes from your bookmarked anime
 
 ## Quick Start
 
@@ -39,16 +37,13 @@ starlight detail onpi
 # Browse episodes and watch
 starlight watch onpi
 
-# Bookmark it
-starlight bookmarks add onpi
-
 # See what's airing
 starlight airing --page 1
 ```
 
 ## Identifier Formats
 
-Every anime-taking command (`detail`, `episodes`, `watch`, `download`, `bookmarks add`, `bookmarks remove`) accepts three interchangeable formats, resolved in order:
+Every anime-taking command (`detail`, `episodes`, `watch`, `download`) accepts three interchangeable formats, resolved in order:
 
 | Format | Example | Speed | API Call |
 |--------|---------|-------|----------|
@@ -98,7 +93,7 @@ List episodes with pagination.
 starlight episodes onpi --page 1 --sort episode_desc
 ```
 
-### `starlight watch <anime> [episode_id]`
+### `starlight watch <anime> [episode_id] [--episode / -e]`
 Interactive episode and quality picker. Extracts the video URL from kwik.cx and streams it via mpv.
 
 ```sh
@@ -110,31 +105,18 @@ starlight watch onpi
 
 If `episode_id` is provided (the `session` field from `episodes`), skips the episode picker.
 
-### `starlight download <anime> [episode_id]`
+Use `--episode` / `-e` as an alternative to the positional argument:
+
+```sh
+starlight watch onpi --episode 778b7b85ae0f
+```
+
+### `starlight download <anime> [episode_id] [--episode / -e]`
 Same flow as `watch` but prints the final video URL instead of launching mpv.
 
 ```sh
 starlight download onpi
 # Video URL: https://cdn.kwik.cx/file/.../video.mp4
-```
-
-### `starlight bookmarks list|add|remove`
-Manage bookmarked anime.
-
-```sh
-starlight bookmarks add onpi
-starlight bookmarks list
-starlight bookmarks remove onpi
-```
-
-### `starlight continue-watching`
-Show unwatched episodes from your bookmarked anime.
-
-```sh
-starlight continue-watching
-# One Piece (onpi)
-#   Episode 1120
-#   Episode 1121
 ```
 
 ## How Short Codes Work
@@ -156,12 +138,6 @@ All state lives in `~/.starlight/state.json`:
 
 ```json
 {
-  "bookmarks": {
-    "37aeb550-...": "One Piece"
-  },
-  "watched": {
-    "37aeb550-...": ["778b7b85ae0f..."]
-  },
   "codes": {
     "onpi": {
       "session_id": "37aeb550-...",
@@ -175,7 +151,8 @@ All state lives in `~/.starlight/state.json`:
   "sessions_to_codes": {
     "37aeb550-...": "onpi",
     "d83ba939-...": "moea"
-  }
+  },
+  "kwik_cache": {}
 }
 ```
 
@@ -186,18 +163,19 @@ Delete this file to reset all state.
 ```
 starlight_cli/
   __init__.py    # Package marker
-  cli.py         # CLI commands (click + rich)
-  api.py         # Scrapes animepahe.pw (requests + BeautifulSoup)
+  cli.py         # CLI commands (click + rich), concurrent episode fetching
+  api.py         # REST + scrape animepahe.pw (shared requests.Session)
   config.py      # HTTP headers and target URLs
-  kwik.py        # kwik.cx JS decryption → playable video URL
+  kwik.py        # kwik.cx JS dean-packer decryption → .m3u8 URL (lazy curl_cffi session)
   player.py      # mpv subprocess wrapper
-  state.py       # ~/.starlight/state.json read/write
+  state.py       # ~/.starlight/state.json read/write (in-memory cache, kwik cache with 7-day TTL)
 ```
 
 ## Dependencies
 
 Runtime:
-- `requests` — HTTP client for animepahe.pw and kwik.cx
+- `requests` — HTTP client for animepahe.pw
+- `curl_cffi` — TLS-fingerprinted HTTP client for kwik.cx
 - `beautifulsoup4` + `lxml` — HTML parsing
 - `click` — CLI framework
 - `rich` — Terminal formatting
@@ -211,15 +189,14 @@ System:
 starlight watch onpi
   → fetch_episode_list(onpi_session_id)
   → user picks episode
-  → fetch_episode_download_links(anime_id, episode_id)
+  → fetch_episode_streams(anime_id, episode_id)
   → user picks quality (1080p, 720p, etc.)
-  → extract_video_url(kwik_url)
-     → GET kwik.cx page
-     → decrypt JS obfuscation (custom algorithm)
-     → POST form with token
-     → follow 302 redirect → final video URL
+  → extract_hls_url(kwik_url)
+     → check ~/.starlight/state.json cache (7-day TTL)
+     → GET kwik.cx page (if not cached)
+     → decrypt JS dean-packer obfuscation
+     → extract .m3u8 URL
   → mpv --referrer=https://kwik.cx/ <video_url>
-  → mark episode as watched in state
 ```
 
 ## Troubleshooting

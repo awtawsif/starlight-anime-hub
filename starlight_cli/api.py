@@ -6,14 +6,22 @@ and scraping data from its web pages. It includes functions for searching,
 fetching anime details, retrieving episode lists, and extracting download links.
 """
 
-import requests
 import re
-from bs4 import BeautifulSoup
 import logging
+import requests
 from .config import API_BASE_URL, ANIME_PAGE_BASE_URL, API_HEADERS
 
-# Configure logging for this module
 logger = logging.getLogger(__name__)
+
+_api_session = None
+
+
+def _get_session():
+    global _api_session
+    if _api_session is None:
+        _api_session = requests.Session()
+        _api_session.headers.update(API_HEADERS)
+    return _api_session
 
 def _parse_related_anime_card(card_row_element):
     """
@@ -110,7 +118,7 @@ def fetch_anime_search_results(query):
     error_message = None
     try:
         params = {'m': 'search', 'q': query}
-        response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
+        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         json_data = response.json()
         results = json_data.get('data', [])
@@ -146,8 +154,9 @@ def fetch_anime_details(anime_session_id):
     error_message = None
 
     try:
-        response = requests.get(detail_url, headers=API_HEADERS, timeout=15)
+        response = _get_session().get(detail_url, timeout=15)
         response.raise_for_status()
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(response.text, 'lxml') 
 
         # Extract Synopsis
@@ -204,19 +213,6 @@ def fetch_anime_details(anime_session_id):
                 anime_details['genre'] = ', '.join(genres) if genres else 'N/A'
             else:
                 anime_details['genre'] = 'N/A'
-
-        # Supplement episode count via API if missing or unreliable
-        if anime_details.get('episodes', 'N/A') in ('N/A', '', None):
-            try:
-                episode_api_url = f"{API_BASE_URL}?m=release&id={anime_session_id}&sort=episode_desc&page=1"
-                response = requests.get(episode_api_url, headers=API_HEADERS, timeout=10)
-                response.raise_for_status()
-                json_data = response.json()
-                episodes_total = json_data.get('total')
-                if episodes_total:
-                    anime_details['episodes'] = str(episodes_total)
-            except Exception as e:
-                logger.warning(f"Could not fetch episode total from API for {anime_session_id}: {e}")
 
         # Extract Relations
         relations_div = soup.find('div', class_='tab-content anime-relation row')
@@ -282,7 +278,7 @@ def fetch_episode_list(anime_session_id, page, sort_order='episode_asc'):
             'm': 'release', 'id': anime_session_id,
             'sort': sort_order, 'page': page
         }
-        response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
+        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         json_data = response.json()
         
@@ -309,8 +305,9 @@ def fetch_episode_streams(anime_session_id, episode_session_id):
     error_message = None
 
     try:
-        resp = requests.get(play_url, headers=API_HEADERS, timeout=15)
+        resp = _get_session().get(play_url, timeout=15)
         resp.raise_for_status()
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(resp.text, 'lxml')
         menu = soup.find('div', id='resolutionMenu')
 
@@ -353,7 +350,7 @@ def fetch_airing_anime(page):
     }
     try:
         params = {'m': 'airing', 'page': page}
-        response = requests.get(API_BASE_URL, params=params, headers=API_HEADERS, timeout=10)
+        response = _get_session().get(API_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         json_data = response.json()
 

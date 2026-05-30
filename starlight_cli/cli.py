@@ -1,5 +1,6 @@
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import click
 from rich.console import Console
@@ -17,6 +18,7 @@ from starlight_cli.api import (
 )
 
 from starlight_cli import state
+from starlight_cli.config import API_HEADERS
 from starlight_cli.kwik import extract_hls_url
 from starlight_cli.player import play
 
@@ -81,6 +83,8 @@ def _resolve_anime(identifier: str):
         if not error:
             title = details.get("title", identifier)
             return identifier, title
+        err_console.print(f"[red]Error resolving UUID:[/] {error}")
+        sys.exit(1)
 
     results, error = fetch_anime_search_results(identifier)
     if error:
@@ -112,18 +116,25 @@ def _resolve_anime(identifier: str):
     return r["session"], r["title"]
 
 
-def _fetch_all_episodes(session_id: str, sort: str = "episode_asc"):
-    all_ep = []
-    page = 1
-    while True:
-        batch, pagination, error = fetch_episode_list(session_id, page, sort)
-        if error:
-            err_console.print(f"[red]{error}[/]")
-            return all_ep
-        all_ep.extend(batch)
-        if pagination.get("current_page", 1) >= pagination.get("last_page", 1):
-            break
-        page += 1
+def _fetch_all_episodes(session_id: str, sort: str = "episode_asc", max_pages: int = 50):
+    first_batch, pagination, error = fetch_episode_list(session_id, 1, sort)
+    if error:
+        err_console.print(f"[red]{error}[/]")
+        return []
+    all_ep = list(first_batch)
+    last_page = min(pagination.get("last_page", 1), max_pages)
+    if last_page <= 1:
+        return all_ep
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        fut_map = {
+            pool.submit(fetch_episode_list, session_id, p, sort): p
+            for p in range(2, last_page + 1)
+        }
+        for fut in as_completed(fut_map):
+            batch, _, err = fut.result()
+            if not err:
+                all_ep.extend(batch)
     return all_ep
 
 
@@ -210,7 +221,6 @@ def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
             sys.exit(1)
 
     if do_play:
-        state.mark_watched(session_id, episode_id)
         label = f"{selected.get('resolution', '?')}p"
         console.print(f"[green]Streaming {label}...[/]")
         play(video_url)
@@ -220,7 +230,10 @@ def _resolve_and_play(anime: str, episode_id: str | None, do_play: bool):
 
 @click.group()
 def cli():
-    pass
+    if "YUhBIBrskG3DbXfMe7ZH" in API_HEADERS.get("Cookie", ""):
+        err_console.print(
+            "[yellow]Warning: Default cookies in use. They may expire.[/]"
+        )
 
 
 @cli.command()
@@ -395,101 +408,15 @@ def episodes(anime, page, sort):
 @cli.command()
 @click.argument("anime")
 @click.argument("episode_id", required=False)
-def watch(anime, episode_id):
-    _resolve_and_play(anime, episode_id, do_play=True)
+@click.option("--episode", "-e", "episode_opt", default=None, help="Episode session ID (alternative to positional arg)")
+def watch(anime, episode_id, episode_opt):
+    _resolve_and_play(anime, episode_id or episode_opt, do_play=True)
 
 
 @cli.command()
 @click.argument("anime")
 @click.argument("episode_id", required=False)
-def download(anime, episode_id):
-    _resolve_and_play(anime, episode_id, do_play=False)
+@click.option("--episode", "-e", "episode_opt", default=None, help="Episode session ID (alternative to positional arg)")
+def download(anime, episode_id, episode_opt):
+    _resolve_and_play(anime, episode_id or episode_opt, do_play=False)
 
-
-@cli.group()
-def bookmarks():
-    pass
-
-
-@bookmarks.command(name="list")
-def bookmarks_list():
-    bm = state.get_bookmarks()
-    if not bm:
-        console.print("[yellow]No bookmarks.[/]")
-        return
-
-    table = Table(title="Bookmarks")
-    table.add_column("Code", style="cyan", width=6)
-    table.add_column("Title", style="white")
-
-    for aid, title in bm.items():
-        code = state.get_session_code(aid) or ""
-        table.add_row(code, title)
-
-    console.print(table)
-
-
-@bookmarks.command()
-@click.argument("anime")
-def add(anime):
-    session_id, title = _resolve_anime(anime)
-    bm = state.get_bookmarks()
-    if session_id in bm:
-        console.print("[yellow]Already bookmarked.[/]")
-        return
-
-    state.add_bookmark(session_id, title)
-    _assign_code(title, session_id)
-    code = state.get_session_code(session_id) or ""
-    console.print(f"[green]Bookmarked:[/] {title} [dim]({code})[/]")
-
-
-@bookmarks.command()
-@click.argument("anime")
-def remove(anime):
-    session_id, title = _resolve_anime(anime)
-    bm = state.get_bookmarks()
-    if session_id not in bm:
-        console.print("[yellow]Not bookmarked.[/]")
-        return
-    state.remove_bookmark(session_id)
-    console.print(f"[green]Removed bookmark:[/] {title}")
-
-
-@cli.command()
-def continue_watching():
-    bm = state.get_bookmarks()
-    if not bm:
-        console.print("[yellow]No bookmarks.[/]")
-        return
-
-    for aid, title in bm.items():
-        code = state.get_session_code(aid) or ""
-        console.print(
-            f"\n[bold cyan]{title}[/] [dim]({code})[/]"
-            if code
-            else f"\n[bold cyan]{title}[/]"
-        )
-        ep_batch, pagination, error = fetch_episode_list(aid, 1, "episode_asc")
-        if error or not ep_batch:
-            continue
-
-        unwatched = [
-            e
-            for e in ep_batch
-            if not state.is_watched(aid, str(e.get("session", "")))
-        ]
-
-        if not unwatched and pagination.get("last_page", 1) <= 1:
-            console.print("  [dim]All caught up![/]")
-        else:
-            for ep in unwatched[:10]:
-                console.print(
-                    f"  [yellow]Episode {ep.get('episode', '?')}[/]"
-                    f"{': ' + ep['title'] if ep.get('title') else ''}"
-                )
-            remaining = len(unwatched) - 10
-            if remaining > 0:
-                console.print(f"  [dim]... and {remaining} more[/]")
-            if not unwatched and pagination.get("last_page", 1) > 1:
-                console.print("  [dim]Up to date on recent episodes[/]")
