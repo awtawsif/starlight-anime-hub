@@ -57,6 +57,15 @@ Every anime-taking command (`detail`, `episodes`, `watch`, `download`) accepts t
 
 **UUIDs** are the raw session IDs from the web app, provided for backward compatibility.
 
+## Global Flags
+
+All commands accept `--json` to output machine-readable JSON instead of rich tables:
+
+```sh
+starlight --json search "Frieren"
+starlight --json detail onpi
+```
+
 ## Commands
 
 ### `starlight search <query>`
@@ -129,6 +138,7 @@ Codes are generated from the first two alphabetic words in the title:
 | "One Piece: The Movie" | `onpi2` | Collision → `onpi` → `onpi2` |
 | "Monster Eater" | `moea` | First 2 chars of "Monster" + "Eater" |
 | "Monogatari" | `mono` | Single word → first 4 chars |
+| "3-gatsu no Lion" | `3gat` | No alpha words → first 4 alphanumeric chars |
 
 Codes are saved to `~/.starlight/state.json` under the `codes` key. The reverse mapping (`sessions_to_codes`) ensures the same code is reused if the same anime appears in both search and airing results.
 
@@ -163,12 +173,20 @@ Delete this file to reset all state.
 ```
 starlight_cli/
   __init__.py    # Package marker
-  cli.py         # CLI commands (click + rich), concurrent episode fetching, range input in picker
+  cli.py         # @click.group() + imports (commands registered via side-effect)
+  _helpers.py    # Shared logic: slugify, UUID check, code gen, episode/quality pickers, stream/play
   api.py         # REST + scrape animepahe.pw (shared requests.Session, centralized _api_get wrapper)
   config.py      # HTTP headers and target URLs
   kwik.py        # kwik.cx JS dean-packer decryption → .m3u8 URL (lazy curl_cffi session, raw HTML fallback)
   player.py      # mpv subprocess wrapper
-  state.py       # ~/.starlight/state.json read/write (in-memory cache, fcntl file locking, kwik cache 7-day TTL)
+  state.py       # ~/.starlight/state.json read/write (in-memory cache, fcntl locking, kwik cache 7-day TTL)
+  commands/
+    __init__.py  # Imports all command modules
+    search.py    # `starlight search`
+    airing.py    # `starlight airing`
+    detail.py    # `starlight detail`
+    episodes.py  # `starlight episodes`
+    watch.py     # `starlight watch` + `starlight download`
 ```
 
 ## Dependencies
@@ -200,13 +218,6 @@ starlight watch onpi
 ```
 
 ## Troubleshooting
-
-**"No module named 'flask'"**: The CLI no longer depends on Flask. If you see this error, reinstall:
-
-```sh
-pip uninstall starlight-anime-hub
-pip install -e .
-```
 
 **mpv not found**: `starlight watch` requires mpv. Install it:
 

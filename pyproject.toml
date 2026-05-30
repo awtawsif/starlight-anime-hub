@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starlight-anime-hub"
+version = "1.2.0"
+description = "Terminal-based anime discovery and streaming tool"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "rich>=13.0",
+    "requests>=2.32",
+    "beautifulsoup4>=4.13",
+    "lxml>=6.0",
+    "curl_cffi>=0.15.0",
+]
+
+[project.scripts]
+starlight = "starlight_cli.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["starlight_cli*"]
