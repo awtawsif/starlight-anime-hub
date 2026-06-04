@@ -13,14 +13,19 @@ ANIME_PAGE_BASE_URL = "https://animepahe.pw/anime"
 # Default HTTP headers to use for API requests and web scraping
 # These headers mimic a typical web browser request to avoid bot detection
 API_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0',
-    'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'X-Requested-With': 'XMLHttpRequest',
-    'Referer': 'https://animepahe.pw/',
-    'Cookie': '__ddg1_=YUhBIBrskG3DbXfMe7ZH; __ddgid_=hIJ8lS0aeWgM3Jlx; __ddgmark_=IPZS5KPogrKD15mV; ann-fakesite=0; res=1080; aud=jpn; av1=0; __ddg2_=z5tlCvKDwcz72UHy; latest=6713; ddg_last_challenge=1775485035452; __ddg8_=URNinrdLmCF6HaSH; __ddg10_=1775647159; __ddg9_=43.245.120.209; XSRF-TOKEN=eyJpdiI6InE0bU9zZlNaNEJEWm91R2VpU1djbkE9PSIsInZhbHVlIjoiR3VXZll6dVNOUDFhMHlBRWdFaXBsRTE3Y2F2RFd0MEx4Nzl5ZzBQbkRiQzhVbXVYMTBwTWhOOUE3TndQSFZqWEVtVS9iR2w2SlFaU1d4WVVwOFI3RUE1ZDRmU1Y1TDM3b1ZmV2RFL2tVdHJ1Mm5BQnNLVHV1cDIxS0NncHJtK3MiLCJtYWMiOiJlNTUxYmEwN2IzNmFlNmQ2MzAwYWU3MjM0MDEzMmRlZDI2Y2MyOTEyNDYwMTZlZWUzMjAxYTJmZDVlYzkyYzIxIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6ImI4YktRYVk4ZTV3T2kxdzh5YURPT2c9PSIsInZhbHVlIjoieGZ3LzhYdWdhWi84ZStwSG1uOGpBWDdTaFd2akRmaXlvMkdNcUhkZmI4Qy9ZS2d1TkNrR2FvYVk5ZlQ4b09tRmtqbFFxZy9WQVJ0c0s5d00xcGtpdXFDUzJwL1gvVzVCOGZvVHA3aERESS9HdVJUZ3AvVW1UZWhOcUZUVlFoWWUiLCJtYWMiOiJkNzhlMWI4ZmZjOTU5OWM4OTg1OWYwZmJkYjZhNDAzNDQwOTQ0ZGUyNzZhZTBiNjZiZTBjZWU4ZjRhYmQ3OGQ3IiwidGFnIjoiIn0%3D',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin'
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Sec-GPC': '1',
+    'Connection': 'keep-alive',
+    'Cookie': 'cf_clearance=M3.CnHQF7dPtHdLxtE1Q1G_vaYyWIDtZysZl.81tG7c-1780580417-1.2.1.1-opFMTwfo2LJwR2v5rVakWO68qX3kM3TN6QnFbg._szdlQTq8Vkd5wk1_awWvErLWNUueLcxTEEODcYhXkdHEAMOe3hLW5Htrtm_PlLzAFLlQxSVMeAMCg3UHOge0uvMYDDnS1RBYcNxDPWZqt46wBmSRQJu6PRa6So1iroSlFLr_hvjD0xM2kkKWyBNlxjR7i3AMm1yMpYY9jelKcOjWi97wHQvge0COcZtcj_mknTSJTiJDmHFjhPwseYXnlqfS5RxNIFqCS_h2gp71hWzUH7c.OgNGNwIThBT69ouUo.3ExK1QZEewV0fzZvsnWIWoemXf1xG.rfxPWqdAv1WFSU0_k9RkgRXr_C3SNhTrIJcTutMXiijYiX2Yi7K003CqSIeD._qdnQi.9i8SGMaNar3Ci9LzBlUT9l4H6JxsqLI; XSRF-TOKEN=eyJpdiI6Imo3Tnd4K3NwUmw5REx4bkVVNEF2Qmc9PSIsInZhbHVlIjoiY3YvMFJtb3RSV0FaV3BIcVFhbGtKMzU3V3lsdWs5TUd1dklqUnM5czluL00ySVgvYitZYkZnNHlYZGxvQWNYcTVla0QxV1dPRWZ4UU50U2x6M09OV2YrWTEwRnplZlROWXZwby9IWVdsUkhlSnZ5QmFRUmtVVis3Z0Z5VE9WNHoiLCJtYWMiOiI2MjUyZjlmY2Y5NmUxNTc0YzRmNzUwNDU1NjY0M2M2Y2RiNWQ5YmM3YzliNjNkNTllMTI4MmQzOWE0ZDZmY2EwIiwidGFnIjoiIn0%3D; animepahe_session=eyJpdiI6ImV2aGxpV3lzZENKTi9jNjlkb1czVFE9PSIsInZhbHVlIjoiMUtrdkM5K1VTbnV2bVJrYzdHNzczT2k1dlRycWhEM1hYaXN2ak1ISUxvSXlzQkhySHpidmgwVUpEVUhXSFJleG5DbWJhTjE0czVXQTJ2b0R6TFNjcFBLbWc1dW52QlhLQ2YzcVJnMzNwN2hnSVB6aU1RTFgvWGJxMTU5bkVxNmsiLCJtYWMiOiIwNjc4M2E2ODI0Y2U5YmVhMTcwODFlYjUyMTFlNzk4ODNhZjEzYzk4ZGQ3NmQyYTEwYTRjMjljMTJlMGViMWE1IiwidGFnIjoiIn0%3D; SERVERID=pong; latest=6402',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Priority': 'u=0, i',
+    'TE': 'trailers'
 }
 
 # User-Agent for fetching redirect pages (can be different to mimic a generic browser more closely)
